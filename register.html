@@ -7,11 +7,6 @@
   <link rel="icon" href="images/logo.svg" type="image/svg+xml">
   <link rel="icon" href="images/favicon.ico" sizes="any">
   <link rel="stylesheet" href="css/style.css">
-  <style>
-    .error-text { color: #d32f2f; font-size: 0.85rem; margin-top: 4px; display: none; }
-    .input-error { border: 1px solid #d32f2f !important; }
-    .server-error { background-color: #fde8e8; color: #d32f2f; padding: 10px 14px; border-radius: 6px; border: 1px solid #f8b4b4; margin-bottom: 16px; font-size: 0.9rem; display: none; }
-  </style>
 </head>
 <body>
 
@@ -19,32 +14,37 @@
   <div id="navbar-placeholder"></div>
 
   <main class="container">
-    <div class="card" style="margin: 40px auto; max-width: 500px;">
+    <div class="card">
       <h2>Create Account</h2>
       <p class="subtitle">Join the surplus food redistribution network</p>
 
-      <div id="serverError" class="server-error"></div>
+      <!-- Feedback Banners -->
+      <div id="serverError" class="server-error" style="display: none;"></div>
+      <div id="serverSuccess" class="server-success" style="display: none;"></div>
 
       <form id="registerForm" novalidate>
-        <div class="form-row" style="display: flex; gap: 12px;">
-          <div class="form-group" style="flex: 1;">
+        <div class="form-row">
+          <div class="form-group">
             <label for="first_name">First Name</label>
             <input type="text" id="first_name" name="first_name" required>
+            <small class="error-text" id="firstNameError"></small>
           </div>
-          <div class="form-group" style="flex: 1;">
+          <div class="form-group">
             <label for="last_name">Last Name</label>
             <input type="text" id="last_name" name="last_name" required>
+            <small class="error-text" id="lastNameError"></small>
           </div>
         </div>
 
         <div class="form-group">
           <label for="phone_number">Phone Number</label>
-          <input type="text" id="phone_number" name="phone_number" placeholder="07XXXXXXXX" required>
+          <input type="tel" id="phone_number" name="phone_number" placeholder="07XXXXXXXX" required>
+          <small class="error-text" id="phoneError"></small>
         </div>
 
         <div class="form-group">
           <label for="email">Email Address</label>
-          <input type="email" id="email" name="email" required placeholder="example@domain.com">
+          <input type="email" id="email" name="email" placeholder="example@domain.com" required>
           <small class="error-text" id="emailError"></small>
         </div>
 
@@ -67,7 +67,7 @@
         <button type="submit" class="btn-submit" id="submitBtn">Create Account</button>
       </form>
 
-      <p class="footer-text" style="margin-top: 16px;">
+      <p class="footer-text">
         Already have an account? <a href="login.html">Sign In here</a>
       </p>
     </div>
@@ -79,142 +79,89 @@
   <script src="js/load-fragments.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      await loadFragment('navbar-placeholder', 'includes/navbar.html');
-      await loadFragment('footer-placeholder', 'includes/footer.html');
+      if (typeof loadFragment === 'function') {
+        await loadFragment('navbar-placeholder', 'includes/navbar.html');
+        await loadFragment('footer-placeholder', 'includes/footer.html');
+      }
     });
 
-    const registerForm = document.getElementById('registerForm');
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    const roleSelect = document.getElementById('role');
-    const submitBtn = document.getElementById('submitBtn');
+    const registerForm   = document.getElementById('registerForm');
+    const firstNameInput = document.getElementById('first_name');
+    const lastNameInput  = document.getElementById('last_name');
+    const phoneInput     = document.getElementById('phone_number');
+    const emailInput     = document.getElementById('email');
+    const passwordInput  = document.getElementById('password');
+    const roleSelect     = document.getElementById('role');
+    const submitBtn      = document.getElementById('submitBtn');
 
-    const emailError = document.getElementById('emailError');
-    const passwordError = document.getElementById('passwordError');
-    const roleError = document.getElementById('roleError');
-    const serverError = document.getElementById('serverError');
+    const serverError    = document.getElementById('serverError');
+    const serverSuccess  = document.getElementById('serverSuccess');
 
-    function showError(input, errorEl, message) {
-      errorEl.textContent = message;
-      errorEl.style.display = 'block';
-      if (input) input.classList.add('input-error');
-    }
-
-    function clearError(input, errorEl) {
-      errorEl.textContent = '';
-      errorEl.style.display = 'none';
-      if (input) input.classList.remove('input-error');
-    }
-
-    function hideServerError() {
-      serverError.textContent = '';
-      serverError.style.display = 'none';
-    }
-
-    function displayServerError(message) {
-      serverError.textContent = message;
+    function displayError(msg) {
+      serverError.textContent = msg;
       serverError.style.display = 'block';
     }
 
-    function validateEmail() {
-      const email = emailInput.value.trim();
-      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-      if (!emailPattern.test(email)) {
-        showError(emailInput, emailError, 'Please enter a valid email address.');
-        return false;
-      }
-
-      const localPart = email.split('@')[0];
-      if (/^\d+$/.test(localPart) || localPart === '123') {
-        showError(emailInput, emailError, 'Email username cannot be purely numbers or "123".');
-        return false;
-      }
-
-      clearError(emailInput, emailError);
-      return true;
+    function clearBanners() {
+      serverError.textContent = '';
+      serverError.style.display = 'none';
+      serverSuccess.textContent = '';
+      serverSuccess.style.display = 'none';
     }
-
-    function validatePassword() {
-      const password = passwordInput.value;
-      const forbiddenPasswords = ['123', '1234', '12345', '123456', '12345678', 'password'];
-
-      if (password.length === 0) {
-        showError(passwordInput, passwordError, 'Please enter a password.');
-        return false;
-      }
-
-      if (forbiddenPasswords.includes(password.toLowerCase()) || /^\d+$/.test(password)) {
-        showError(passwordInput, passwordError, 'Password cannot be simple numbers like "123" or numbers only.');
-        return false;
-      }
-
-      if (password.length < 6) {
-        showError(passwordInput, passwordError, 'Password must be at least 6 characters long.');
-        return false;
-      }
-
-      clearError(passwordInput, passwordError);
-      return true;
-    }
-
-    emailInput.addEventListener('input', () => {
-      hideServerError();
-      validateEmail();
-    });
-    passwordInput.addEventListener('input', () => {
-      hideServerError();
-      validatePassword();
-    });
 
     registerForm.addEventListener('submit', async function(e) {
       e.preventDefault();
-      hideServerError();
+      clearBanners();
 
-      const isEmailValid = validateEmail();
-      const isPasswordValid = validatePassword();
-
-      if (!roleSelect.value) {
-        showError(roleSelect, roleError, 'Please select a role.');
+      if (!firstNameInput.value.trim() || !lastNameInput.value.trim() || !phoneInput.value.trim() || !emailInput.value.trim() || !passwordInput.value || !roleSelect.value) {
+        displayError('Please complete all form fields.');
         return;
-      } else {
-        clearError(roleSelect, roleError);
       }
-
-      if (!isEmailValid || !isPasswordValid) return;
 
       submitBtn.disabled = true;
       submitBtn.textContent = 'Creating Account...';
 
       const formData = {
-        first_name: document.getElementById('first_name').value.trim(),
-        last_name: document.getElementById('last_name').value.trim(),
-        phone_number: document.getElementById('phone_number').value.trim(),
+        first_name: firstNameInput.value.trim(),
+        last_name: lastNameInput.value.trim(),
+        phone_number: phoneInput.value.trim(),
         email: emailInput.value.trim().toLowerCase(),
         password: passwordInput.value,
         role: roleSelect.value
       };
 
       try {
-        // Targeted directly to PHP API endpoint
         const response = await fetch('api/register.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
         });
 
-        const result = await response.json();
+        // Safely parse JSON response
+        const textData = await response.text();
+        let result;
+        try {
+          result = JSON.parse(textData);
+        } catch (jsonErr) {
+          console.error("Server output raw non-JSON text:", textData);
+          displayError("Server returned an invalid response. Check PHP logs or Network tab.");
+          return;
+        }
 
         if (response.ok && result.success) {
-          // If a vendor signs up, redirect to vendor setup page; otherwise send to login
+          serverSuccess.textContent = result.message || 'Account created successfully!';
+          serverSuccess.style.display = 'block';
+          
           const targetUrl = result.data?.role === 'vendor' ? 'vendor-details.html' : 'login.html';
-          window.location.href = result.redirectUrl || targetUrl;
+          setTimeout(() => {
+            window.location.href = result.redirectUrl || targetUrl;
+          }, 1200);
         } else {
-          displayServerError(result.message || 'Registration failed. Please check your details.');
+          displayError(result.message || 'Registration failed. Please try again.');
         }
       } catch (err) {
-        console.error('Registration failed:', err);
-        displayServerError('Unable to connect to the backend server. Please try again.');
+        console.error('Fetch execution error:', err);
+        displayError('Connection error: Make sure Apache is running in XAMPP and you access the page via http://localhost/');
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Create Account';

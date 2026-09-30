@@ -3,7 +3,7 @@ header('Content-Type: application/json');
 header('X-Content-Type-Options: nosniff');
 
 session_start();
-require_once '../includes/db.php';
+require_once __DIR__ . '/../includes/db.php';
 
 // Parse raw JSON request payload
 $input = json_decode(file_get_contents('php://input'), true);
@@ -22,7 +22,7 @@ if (empty($firstName) || empty($lastName) || empty($phone) || !$email || empty($
     exit();
 }
 
-if (!in_array($role, ['vendor', 'consumer'])) {
+if (!in_array($role, ['vendor', 'consumer'], true)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Invalid role selected.']);
     exit();
@@ -32,15 +32,16 @@ try {
     // 1. Ensure email does not already exist
     $checkStmt = $pdo->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
     $checkStmt->execute(['email' => $email]);
+    
     if ($checkStmt->fetch()) {
         http_response_code(409); // Conflict
-        echo json_encode(['success' => false, 'message' => 'An account with this email already exists.']);
+        echo json_encode(['success' => false, 'message' => 'An account with this email address already exists.']);
         exit();
     }
 
     // 2. Hash password securely
     $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-    $fullName = $firstName . ' ' . $lastName;
+    $fullName     = $firstName . ' ' . $lastName;
 
     // 3. Insert record into database
     $insertStmt = $pdo->prepare("
@@ -78,5 +79,9 @@ try {
 
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database error occurred while creating your account.']);
+    // Include error message in local dev environment for debugging
+    echo json_encode([
+        'success' => false, 
+        'message' => 'Database error occurred: ' . $e->getMessage()
+    ]);
 }
