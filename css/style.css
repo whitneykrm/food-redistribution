@@ -1,0 +1,585 @@
+:root {
+    /* Brand Greens */
+    --fc-primary-green: #28a745;
+    --fc-hover-green: #218838;
+    --green: #2f7f3e;
+    --dark-green: #276534;
+    --light-green: #e7f5e9;
+
+    /* Brand Accent Colors */
+    --fc-primary-blue: #285da7;
+    --fc-hover-blue: #214b87;
+    --fc-accent-orange: #e67e22;
+    --orange: #e8832a;
+
+    /* Neutrals & Borders */
+    --fc-dark: #333333;
+    --text: #292524;
+    --fc-muted: #6c757d;
+    --grey: #78716c;
+    --fc-light-bg: #f8f9fa;
+    --fc-white: #ffffff;
+    --fc-border: #ced4da;
+    --border: #e7e5e4;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, system-ui, -apple-system, sans-serif;
+}
+
+body {
+    background-color: var(--fc-light-bg);
+    min-height: 100vh;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+}
+
+h1 { margin: 0; font-size: 1.5rem; }
+h2 { margin: 0; font-size: 1.1rem; }
+p  { margin: 0; }
+a  { color: var(--dark-green); }
+
+.muted  { margin-top: .3rem; color: var(--grey); font-size: .9rem; }
+.center { text-align: center; }
+
+
+/* ── 2. Buttons & Form Controls ──────────────────────────────────────────── */
+
+/* Generic Buttons */
+.button {
+    display: block;
+    width: 100%;
+    margin-top: 1rem;
+    padding: .75rem;
+    border: 0;
+    border-radius: 10px;
+    background: var(--green);
+    color: var(--fc-white);
+    font: inherit;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+.button:hover { background: var(--dark-green); }
+
+.button-light {
+    border: 1px solid var(--border);
+    background: var(--fc-white);
+    color: var(--text);
+}
+.button-light:hover { background: #f5f5f4; }
+
+.button-small {
+    padding: .4rem .8rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: .9rem;
+    text-decoration: none;
+}
+.button-small:hover { background: #f5f5f4; }
+
+.btn-submit {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--fc-primary-blue);
+    color: var(--fc-white);
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background 0.3s ease;
+}
+
+.btn-submit:hover {
+    background-color: var(--fc-hover-blue);
+}
+
+form { 
+    margin-top: 1.5rem; 
+}
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-row,
+.row {
+    display: flex;
+    gap: 15px;
+}
+
+.form-row .form-group,
+.row label {
+    flex: 1;
+}
+
+label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--fc-dark);
+    font-size: 0.9rem;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--fc-border);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus,
+select:focus {
+    border-color: var(--fc-primary-green);
+    box-shadow: 0 0 0 3px var(--light-green);
+}
+
+/* ── 3. Cards & Containers ─────────────────────────────────────────────── */
+
+.card {
+    background: var(--fc-white);
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    max-width: 450px;
+    margin: 40px auto;
+}
+
+.card h2 {
+    color: var(--fc-primary-blue);
+    font-size: 1.8rem;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.card p.subtitle {
+    color: var(--fc-muted);
+    font-size: 0.95rem;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+/* Landing Page Title & Action Buttons */
+.welcome-title {
+    color: var(--fc-primary-green);
+    font-size: 1.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    text-align: center;
+    letter-spacing: 0.5px;
+    margin-bottom: 1.5rem;
+}
+
+.welcome-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+}
+
+.btn-signin {
+    background-color: var(--fc-primary-green);
+    color: var(--fc-white) !important;
+    padding: 10px 22px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: background-color 0.2s ease;
+}
+
+.btn-signin:hover {
+    background-color: var(--fc-hover-green);
+    color: var(--fc-white) !important;
+}
+
+.btn-register {
+    background-color: var(--fc-muted);
+    color: var(--fc-white) !important;
+    padding: 10px 22px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: background-color 0.2s ease;
+}
+
+.btn-register:hover {
+    background-color: #5a6268;
+    color: var(--fc-white) !important;
+}
+
+/* Field Validation Errors */
+.error-text {
+    color: #d32f2f;
+    font-size: 0.85rem;
+    margin-top: 4px;
+    display: none;
+}
+
+.input-error {
+    border-color: #d32f2f !important;
+}
+
+/* Form Alert Boxes */
+.errors,
+.server-errors {
+    margin-top: 1.25rem;
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    border: 1px solid #f8b4b4;
+    border-radius: 8px;
+    background-color: #fde8e8;
+    color: #b91c1c;
+    font-size: 0.9rem;
+}
+
+.errors p,
+.server-errors p {
+    margin: 0 0 4px 0;
+}
+
+.errors p:last-child,
+.server-errors p:last-child {
+    margin-bottom: 0;
+}
+
+/* ── 4. Navbar Navigation ────────────────────────────────────────────────── */
+
+.navbar-wrapper {
+    width: 100%;
+    background-color: var(--fc-white);
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.navbar {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 12px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+}
+
+.brand-header,
+.navbar-logo {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    color: var(--dark-green);
+    font-weight: 700;
+}
+
+.brand-title {
+    display: flex;
+    flex-direction: column;
+}
+
+.brand-name {
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+}
+
+.text-green { color: var(--fc-primary-green); }
+.text-orange { color: var(--fc-accent-orange); }
+
+.tagline {
+    font-size: 0.72rem;
+    color: var(--fc-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+}
+
+.nav-links,
+.navbar-links {
+    display: flex;
+    list-style: none;
+    gap: 12px;
+    align-items: center;
+}
+
+.nav-links a,
+.navbar-links a {
+    text-decoration: none;
+    color: var(--fc-dark);
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.nav-links a:hover,
+.nav-links a.active,
+.navbar-links a:hover,
+.navbar-links a.active {
+    color: var(--fc-primary-green);
+    background-color: var(--light-green);
+}
+
+.soon {
+    padding: .1rem .4rem;
+    border-radius: 99px;
+    background: #f5f5f4;
+    color: #a8a29e;
+    font-size: .65rem;
+    text-transform: uppercase;
+}
+
+.navbar-user { display: flex; align-items: center; gap: .75rem; margin-left: auto; }
+.navbar-name { text-align: right; line-height: 1.2; }
+.navbar-name strong { display: block; font-size: .9rem; }
+.navbar-name small  { color: var(--grey); }
+
+.avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    background: var(--light-green);
+    color: var(--dark-green);
+    font-weight: 700;
+    font-size: .9rem;
+}
+
+.nav-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.btn-nav-login {
+    padding: 8px 18px;
+    background-color: var(--fc-primary-green);
+    color: var(--fc-white) !important;
+    border: 1.5px solid var(--fc-primary-green);
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease;
+}
+
+.btn-nav-login:hover {
+    background-color: var(--fc-hover-green);
+    border-color: var(--fc-hover-green);
+    color: var(--fc-white) !important;
+}
+
+.btn-nav-register {
+    padding: 8px 18px;
+    background-color: var(--fc-primary-green);
+    color: var(--fc-white) !important;
+    border: 1.5px solid var(--fc-primary-green);
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease;
+}
+
+.btn-nav-register:hover {
+    background-color: var(--fc-hover-green);
+    border-color: var(--fc-hover-green);
+    color: var(--fc-white) !important;
+}
+
+/* ── 5. Guest Page Layout ────────────────────────────────────────────────── */
+
+.guest-page {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow-x: hidden;
+    background: var(--dark-green);
+    min-height: 100vh;
+}
+
+.guest-page::before,
+.guest-page::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+.guest-page::before { width: 24rem; height: 24rem; left: -8rem; top: -8rem; background: rgb(47 127 62 / .5); }
+.guest-page::after  { width: 22rem; height: 22rem; right: -6rem; bottom: -6rem; background: rgb(232 131 42 / .25); }
+
+.guest {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem 1rem;
+}
+
+.guest-logo {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin-bottom: 1.5rem;
+    color: var(--fc-white);
+    font-size: 1.2rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+/* ── 6. Dashboard & Application Views ────────────────────────────────────── */
+
+.app-page {
+    display: flex;
+    flex-direction: column;
+    background: #fafaf9;
+    min-height: 100vh;
+}
+
+.container {
+    flex: 1;
+    width: 100%;
+    max-width: 70rem;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.hero {
+    padding: 2rem;
+    border-radius: 16px;
+    background: var(--dark-green);
+    color: var(--fc-white);
+}
+.hero-date { color: #bbe2c0; font-size: .9rem; }
+.hero h1   { margin: .3rem 0 .5rem; }
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.box {
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--fc-white);
+}
+
+.number { margin-top: .4rem; font-size: 2rem; font-weight: 700; }
+
+.empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .5rem;
+    padding: 3rem 1.5rem;
+    text-align: center;
+}
+.empty img { opacity: .5; }
+
+.footer-text,
+.small-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 0.9rem;
+    color: var(--fc-muted);
+}
+
+.footer-text a {
+    color: var(--fc-primary-green);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.footer-text a:hover {
+    text-decoration: underline;
+}
+
+.footer {
+    position: relative;
+    z-index: 1;
+    padding: 1.5rem;
+    color: var(--grey);
+    font-size: .85rem;
+    text-align: center;
+}
+
+.guest-page .footer { 
+    color: #bbe2c0; /* lighter text on green background */
+}
+
+/* ── 7. Responsive Breakpoints ───────────────────────────────────────────── */
+
+@media (max-width: 800px) {
+    .navbar {
+        flex-wrap: wrap;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 12px 16px;
+    }
+
+    .nav-links,
+    .navbar-links {
+        order: 3;
+        width: 100%;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: center;
+        overflow-x: auto;
+    }
+
+    .navbar-name { 
+        display: none; 
+    }
+
+    .container { 
+        padding: 1rem; 
+    }
+
+    .cards { 
+        grid-template-columns: 1fr; 
+    }
+
+    .form-row,
+    .row { 
+        flex-direction: column; 
+        gap: 0; 
+    }
+
+    .card { 
+        padding: 24px; 
+        margin: 20px auto; 
+    }
+}

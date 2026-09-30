@@ -1,0 +1,204 @@
+
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.dashboard-header h2 {
+    color: var(--fc-dark, #1f2937);
+    font-size: 1.8rem;
+}
+
+.btn-logout {
+    background-color: #dc3545;
+    color: var(--fc-white, #ffffff);
+    padding: 10px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background 0.2s ease;
+}
+
+.btn-logout:hover {
+    background-color: #bd2130;
+}
+
+.admin-id-badge {
+    font-size: 0.85rem;
+    color: var(--fc-muted, #6b7280);
+    font-weight: 600;
+    margin-right: 6px;
+}
+
+/* Flash messages */
+.flash {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.flash-success {
+    background-color: var(--light-green, #e8f5e9);
+    color: var(--dark-green, #1b5e20);
+    border: 1px solid var(--fc-primary-green, #2e7d32);
+}
+
+.flash-error {
+    background-color: #fde8e8;
+    color: #b91c1c;
+    border: 1px solid #f8b4b4;
+}
+
+/* Stats grid (ViewDashboard) */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+}
+
+.stat-box {
+    padding: 1.25rem;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 12px;
+    background: var(--fc-white, #ffffff);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--fc-muted, #6b7280);
+    font-weight: 600;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--fc-dark, #1f2937);
+}
+
+.stat-alert .stat-number {
+    color: var(--fc-accent-orange, #f57c00);
+}
+
+/* Table cards (reused pattern from vendor-dashboard) */
+.table-card {
+    background: var(--fc-white, #ffffff);
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.table-card h3 {
+    color: var(--fc-primary-green, #2e7d32);
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+}
+
+.muted {
+    color: var(--fc-muted, #6b7280);
+    font-size: 0.9rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--border, #e5e7eb);
+    font-size: 0.95rem;
+}
+
+th {
+    background-color: var(--fc-light-bg, #f4f6f8);
+    color: var(--fc-muted, #6b7280);
+    font-weight: 600;
+}
+
+.btn-verify {
+    background-color: var(--fc-primary-green, #2e7d32);
+    color: var(--fc-white, #ffffff);
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: background 0.2s ease;
+}
+
+.btn-verify:hover {
+    background-color: var(--fc-hover-green, #1b5e20);
+}
+
+.btn-delete {
+    background-color: #dc3545;
+    color: var(--fc-white, #ffffff);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: background 0.2s ease;
+}
+
+.btn-delete:hover {
+    background-color: #bd2130;
+}
+
+/* Admin profile form uses the shared .form-row, but needs the same
+   fixed-width button column and wrap behavior as the vendor dashboard */
+.table-card .form-row {
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.table-card .form-group.btn-align {
+    flex: 0 0 150px;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 800px) {
+    .table-card {
+        padding: 20px;
+    }
+
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 600px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .table-card .form-group.btn-align {
+        flex: 1 1 100%;
+    }
+}
