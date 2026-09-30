@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Dashboard - Food Connect</title>
+    <link rel="icon" href="images/logo.svg" type="image/svg+xml">
+    <link rel="icon" href="images/favicon.ico" sizes="any">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/vendor-dashboard.css">
+</head>
+<body>
+
+    <!-- Dynamic Header/Nav Placeholder -->
+    <div id="nav-placeholder"></div>
+
+    <div class="dashboard-container">
+
+        <!-- Dynamic Alert Banner for Flash Messages -->
+        <div id="alert-msg" style="display: none; padding: 12px 16px; margin-bottom: 20px; border-radius: 6px; font-weight: 500;"></div>
+
+        <div class="dashboard-header">
+            <h2>Vendor Control Panel</h2>
+            <button onclick="alert('Opening QR Camera Scanner...')" class="btn-scan">Scan Consumer QR</button>
+        </div>
+
+        <!-- Create Listing Form -->
+        <div class="table-card">
+            <h3>List Surplus Food Item</h3>
+            <form id="add-listing-form" class="form-row">
+                <div class="form-group">
+                    <label for="itemName">Item Name</label>
+                    <input type="text" id="itemName" name="item_name" placeholder="e.g. Excess Rice Meals" required>
+                </div>
+                <div class="form-group">
+                    <label for="itemQuantity">Quantity</label>
+                    <input type="number" id="itemQuantity" name="quantity" placeholder="10" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="originalPrice">Original Price (KES)</label>
+                    <input type="number" id="originalPrice" name="original_price" placeholder="500" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="discountedPrice">Discounted Price (KES)</label>
+                    <input type="number" id="discountedPrice" name="discounted_price" placeholder="200" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="expiryTime">Expiry Date/Time</label>
+                    <input type="datetime-local" id="expiryTime" name="expiry_time" required>
+                </div>
+                <div class="form-group btn-align">
+                    <button type="submit" class="btn-submit">Add Listing</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Active Listings Table -->
+        <div class="table-card">
+            <h3>Active Listings</h3>
+            <div id="listings-container">
+                <p class="muted">Loading listings...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dynamic Footer Placeholder -->
+    <div id="footer-placeholder"></div>
+
+    <script src="js/load-fragments.js"></script>
+    <script>
+        // Inject Navbar Partial
+        fetch('includes/navbar.html')
+            .then(res => res.text())
+            .then(data => {
+                document.getElementById('nav-placeholder').innerHTML = data;
+            }).catch(() => {});
+
+        // Inject Footer Partial
+        fetch('includes/footer.html')
+            .then(res => res.text())
+            .then(data => {
+                document.getElementById('footer-placeholder').innerHTML = data;
+            }).catch(() => {});
+
+        // Helper function for feedback banners
+        function showAlert(message, isSuccess = true) {
+            const alertBox = document.getElementById('alert-msg');
+            alertBox.style.display = 'block';
+            alertBox.style.backgroundColor = isSuccess ? '#d4edda' : '#f8d7da';
+            alertBox.style.color = isSuccess ? '#155724' : '#721c24';
+            alertBox.style.border = isSuccess ? '1px solid #c3e6cb' : '1px solid #f5c6cb';
+            alertBox.textContent = message;
+        }
+
+        // Helper to prevent XSS in table output
+        function escapeHtml(str) {
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // Fetch and Render Listings Table from PHP API
+        async function fetchListings() {
+            const container = document.getElementById('listings-container');
+            try {
+                const res = await fetch('api/get-listings.php');
+                const rawText = await res.text();
+                
+                let data;
+                try {
+                    data = JSON.parse(rawText);
+                } catch (e) {
+                    console.error('PHP Output error:', rawText);
+                    container.innerHTML = '<p class="muted">Server output error. Check console network tab.</p>';
+                    return;
+                }
+
+                if (!data.success) {
+                    if (data.redirectUrl) {
+                        window.location.href = data.redirectUrl;
+                        return;
+                    }
+                    container.innerHTML = `<p class="muted">${escapeHtml(data.message || 'Failed to load listings.')}</p>`;
+                    return;
+                }
+
+                if (!data.listings || data.listings.length === 0) {
+                    container.innerHTML = '<p class="muted">You haven\'t listed any surplus items yet.</p>';
+                    return;
+                }
+
+                const rows = data.listings.map(l => {
+                    const isExpired = new Date(l.expiry_time) < new Date();
+                    const formattedDate = new Date(l.expiry_time).toLocaleString('en-GB', {
+                        day: '2-digit',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                    });
+
+                    const id = l.listings_id || l.id;
+
+                    return `
+                        <tr>
+                            <td>#LST-${id}</td>
+                            <td>${escapeHtml(l.item_name)}</td>
+                            <td>${l.quantity}</td>
+                            <td>KES ${parseFloat(l.original_price).toFixed(2)}</td>
+                            <td>KES ${parseFloat(l.discounted_price).toFixed(2)}</td>
+                            <td>${formattedDate}</td>
+                            <td><span class="status-${isExpired ? 'inactive' : 'active'}">${isExpired ? 'Expired' : 'Active'}</span></td>
+                            <td>
+                                <button class="btn-delete" onclick="deleteListing(${id})">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                container.innerHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Listing ID</th>
+                                <th>Item Name</th>
+                                <th>Quantity</th>
+                                <th>Original Price</th>
+                                <th>Discounted Price</th>
+                                <th>Expires</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows}
+                        </tbody>
+                    </table>
+                `;
+            } catch (err) {
+                console.error('Error fetching listings:', err);
+                container.innerHTML = '<p class="muted">Failed to load active listings.</p>';
+            }
+        }
+
+        // Add Listing via PHP API
+        document.getElementById('add-listing-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const payload = {
+                item_name: document.getElementById('itemName').value,
+                quantity: parseInt(document.getElementById('itemQuantity').value, 10),
+                original_price: parseFloat(document.getElementById('originalPrice').value),
+                discounted_price: parseFloat(document.getElementById('discountedPrice').value),
+                expiry_time: document.getElementById('expiryTime').value
+            };
+
+            try {
+                const res = await fetch('api/create-listing.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const rawText = await res.text();
+                let result = JSON.parse(rawText);
+
+                if (result.success) {
+                    showAlert(result.message || 'Listing added successfully.', true);
+                    document.getElementById('add-listing-form').reset();
+                    fetchListings();
+                } else {
+                    showAlert(result.message || 'Failed to add listing.', false);
+                }
+            } catch (err) {
+                console.error('Error adding listing:', err);
+                showAlert('An unexpected error occurred while adding the listing.', false);
+            }
+        });
+
+        // Delete Listing via PHP API
+        async function deleteListing(listingId) {
+            if (!confirm('Delete this listing?')) return;
+
+            try {
+                const res = await fetch('api/delete-listing.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ listing_id: listingId })
+                });
+
+                const rawText = await res.text();
+                let result = JSON.parse(rawText);
+
+                if (result.success) {
+                    showAlert(result.message || 'Listing removed.', true);
+                    fetchListings();
+                } else {
+                    showAlert(result.message || 'Failed to delete listing.', false);
+                }
+            } catch (err) {
+                console.error('Error deleting listing:', err);
+                showAlert('An unexpected error occurred while deleting the listing.', false);
+            }
+        }
+
+        // Initialize dashboard
+        fetchListings();
+    </script>
+</body>
+</html>

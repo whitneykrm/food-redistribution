@@ -30,7 +30,7 @@ if (!in_array($role, ['vendor', 'consumer'], true)) {
 
 try {
     // 1. Ensure email does not already exist
-    $checkStmt = $pdo->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
+    $checkStmt = $pdo->prepare("SELECT user_id FROM users WHERE email = :email LIMIT 1");
     $checkStmt->execute(['email' => $email]);
     
     if ($checkStmt->fetch()) {
@@ -45,15 +45,16 @@ try {
 
     // 3. Insert record into database
     $insertStmt = $pdo->prepare("
-        INSERT INTO users (name, phone_number, email, password_hash, role, created_at)
-        VALUES (:name, :phone, :email, :password_hash, :role, NOW())
+        INSERT INTO users (firstname,lastname, phone_number, email, password, role, created_at)
+        VALUES (:firstname, :lastname, :phone, :email, :password, :role, NOW())
     ");
 
     $insertStmt->execute([
-        'name'          => $fullName,
+        'firstname'     => $firstName,
+        'lastname'      => $lastName,
         'phone'         => $phone,
         'email'         => $email,
-        'password_hash' => $passwordHash,
+        'password' => $passwordHash,
         'role'          => $role
     ]);
 
