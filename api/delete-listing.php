@@ -16,13 +16,18 @@ if (empty($data['listing_id'])) {
 }
 
 try {
-    // Retrieve vendor_id using user_id
-    $stmt = $pdo->prepare("SELECT vendor_id FROM vendors WHERE user_id = ?");
+    
+    $stmt = $pdo->prepare("SELECT vendor_id FROM vendor WHERE user_id = ?");
     $stmt->execute([$_SESSION['user_id']]);
     $vendor = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Delete listing belonging to this vendor
-    $stmt = $pdo->prepare("DELETE FROM listings WHERE id = ? AND vendor_id = ?");
+    if (!$vendor) {
+        echo json_encode(['success' => false, 'message' => 'Vendor profile not found']);
+        exit;
+    }
+
+
+    $stmt = $pdo->prepare("DELETE FROM listings WHERE listings_id = ? AND vendor_id = ?");
     $stmt->execute([$data['listing_id'], $vendor['vendor_id']]);
 
     if ($stmt->rowCount() > 0) {

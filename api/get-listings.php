@@ -16,8 +16,8 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'vendor') {
 $user_id = $_SESSION['user_id'];
 
 try {
-    // Select vendor_id matching the logged-in user_id
-    $stmt = $pdo->prepare("SELECT vendor_id FROM vendors WHERE user_id = ?");
+    
+    $stmt = $pdo->prepare("SELECT vendor_id FROM vendor WHERE user_id = ?");
     $stmt->execute([$user_id]);
     $vendor = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -30,8 +30,8 @@ try {
         exit;
     }
 
-    // Fetch listings for this vendor
-    $stmt = $pdo->prepare("SELECT * FROM listings WHERE vendor_id = ? ORDER BY created_at DESC");
+    // Fetch listings for this vendor sorted by listings_id descending
+    $stmt = $pdo->prepare("SELECT * FROM listings WHERE vendor_id = ? ORDER BY listings_id DESC");
     $stmt->execute([$vendor['vendor_id']]);
     $listings = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

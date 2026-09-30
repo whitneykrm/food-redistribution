@@ -16,8 +16,8 @@ if (empty($data['item_name']) || empty($data['quantity']) || empty($data['origin
 }
 
 try {
-    // Retrieve vendor_id using user_id
-    $stmt = $pdo->prepare("SELECT vendor_id FROM vendors WHERE user_id = ?");
+    
+    $stmt = $pdo->prepare("SELECT vendor_id FROM vendor WHERE user_id = ?");
     $stmt->execute([$_SESSION['user_id']]);
     $vendor = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -26,7 +26,7 @@ try {
         exit;
     }
 
-    // Insert new item
+    
     $sql = "INSERT INTO listings (vendor_id, item_name, quantity, original_price, discounted_price, expiry_time) 
             VALUES (?, ?, ?, ?, ?, ?)";
     $stmt = $pdo->prepare($sql);
