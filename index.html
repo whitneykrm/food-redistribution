@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome · Food Redistribution</title>
+    <link rel="icon" href="images/logo.svg" type="image/svg+xml">
+    <link rel="icon" href="images/favicon.ico" sizes="any">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="guest-page">
+
+    <div id="navbar-placeholder"></div>
+
+    <main class="guest">
+        <a href="index.html" class="guest-logo">
+            <img src="images/logo.svg" alt="Logo" width="40" height="40">
+            Food Redistribution
+        </a>
+
+        <div class="card center">
+            <h1 class="welcome-title">WELCOME TO FOOD CONNECT</h1>
+
+            <!-- Dynamic button area based on session -->
+            <div id="welcome-actions">
+                <p>Loading...</p>
+            </div>
+        </div>
+    </main>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="js/load-fragments.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 1. Inject UI fragments
+            await loadFragment('navbar-placeholder', 'includes/navbar.html');
+            await loadFragment('footer-placeholder', 'includes/footer.html');
+
+            // 2. Dynamic Session Check
+            checkAuth();
+        });
+
+        async function checkAuth() {
+            const container = document.getElementById('welcome-actions');
+            try {
+                // Corrected endpoint path to match your project tree
+                const response = await fetch('api/session-check.php');
+                
+                if (!response.ok) throw new Error('Unauthenticated');
+
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    const role = result.data.role || 'consumer';
+                    let dashboardUrl = 'foodlisting.html'; // Default consumer destination
+
+                    if (role === 'vendor') dashboardUrl = 'vendor-dashboard.html';
+                    if (role === 'admin') dashboardUrl = 'admin-dashboard.html';
+
+                    container.innerHTML = `
+                        <a href="${dashboardUrl}" class="button">Go to Dashboard</a>
+                    `;
+                } else {
+                    showGuestButtons(container);
+                }
+            } catch (err) {
+                showGuestButtons(container);
+            }
+        }
+
+        function showGuestButtons(container) {
+            container.innerHTML = `
+                <div class="welcome-actions">
+                    <a href="login.html" class="btn-signin">Sign In</a>
+                    <a href="register.html" class="btn-register">Create Account</a>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

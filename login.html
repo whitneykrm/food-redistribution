@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - Food Connect</title>
+    <link rel="icon" href="images/logo.svg" type="image/svg+xml">
+    <link rel="icon" href="images/favicon.ico" sizes="any">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .error-text {
+            color: #d32f2f;
+            font-size: 0.85rem;
+            margin-top: 4px;
+            display: none;
+        }
+        .input-error {
+            border: 1px solid #d32f2f !important;
+        }
+        .server-error {
+            background-color: #fde8e8;
+            color: #d32f2f;
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: 1px solid #f8b4b4;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Inject Dynamic Navbar -->
+    <div id="navbar-placeholder"></div>
+
+    <!-- MAIN LOGIN CARD -->
+    <main class="container">
+        <div class="card" style="margin: 40px auto; max-width: 450px;">
+            <h2>Sign In</h2>
+
+            <!-- Server-side / API Error Display -->
+            <div class="server-error" id="serverError" style="display: none;"></div>
+
+            <form id="loginForm" novalidate>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" value="" required placeholder="example@domain.com">
+                    <small class="error-text" id="emailError"></small>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required placeholder="Enter your password">
+                    <small class="error-text" id="passwordError"></small>
+                </div>
+
+                <div class="form-group">
+                    <label for="userRole">Log In As</label>
+                    <select id="userRole" name="userRole" required>
+                        <option value="consumer">Consumer</option>
+                        <option value="vendor">Vendor</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submitBtn">Sign In</button>
+            </form>
+
+            <p class="footer-text" style="margin-top: 16px;">
+                Don't have an account? <a href="register.html">Create one here</a>
+            </p>
+        </div>
+    </main>
+
+    <!-- Inject Dynamic Footer -->
+    <div id="footer-placeholder"></div>
+
+    <script src="js/load-fragments.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadFragment('navbar-placeholder', 'includes/navbar.html');
+            await loadFragment('footer-placeholder', 'includes/footer.html');
+        });
+
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const emailError = document.getElementById('emailError');
+        const passwordError = document.getElementById('passwordError');
+        const serverError = document.getElementById('serverError');
+        const submitBtn = document.getElementById('submitBtn');
+
+        function showError(input, errorEl, message) {
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            input.classList.add('input-error');
+        }
+
+        function clearError(input, errorEl) {
+            errorEl.textContent = '';
+            errorEl.style.display = 'none';
+            input.classList.remove('input-error');
+        }
+
+        function displayServerError(message) {
+            serverError.textContent = message;
+            serverError.style.display = 'block';
+        }
+
+        function hideServerError() {
+            serverError.textContent = '';
+            serverError.style.display = 'none';
+        }
+
+        function validateEmail() {
+            const email = emailInput.value.trim();
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            if (!emailPattern.test(email)) {
+                showError(emailInput, emailError, 'Please enter a valid email address.');
+                return false;
+            }
+
+            const localPart = email.split('@')[0];
+            if (/^\d+$/.test(localPart)) {
+                showError(emailInput, emailError, 'Email cannot consist of numbers only before the @ sign.');
+                return false;
+            }
+
+            clearError(emailInput, emailError);
+            return true;
+        }
+
+        function validatePassword() {
+            const password = passwordInput.value;
+
+            if (password.length === 0) {
+                showError(passwordInput, passwordError, 'Please enter your password.');
+                return false;
+            }
+
+            if (/^\d+$/.test(password)) {
+                showError(passwordInput, passwordError, 'Password cannot consist of numbers only.');
+                return false;
+            }
+
+            clearError(passwordInput, passwordError);
+            return true;
+        }
+
+        emailInput.addEventListener('input', () => {
+            hideServerError();
+            validateEmail();
+        });
+        
+        passwordInput.addEventListener('input', () => {
+            hideServerError();
+            validatePassword();
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            hideServerError();
+
+            const emailValid = validateEmail();
+            const passwordValid = validatePassword();
+
+            if (!emailValid || !passwordValid) return;
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing in...';
+
+            const payload = {
+                email: emailInput.value.trim(),
+                password: passwordInput.value,
+                userRole: document.getElementById('userRole').value
+            };
+
+            try {
+                // Direct call to PHP backend API
+                const response = await fetch('api/login.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Redirect according to user role or API instruction
+                    const defaultRedirect = data.data?.role === 'vendor' ? 'vendor-dashboard.html' :
+                                           data.data?.role === 'admin' ? 'admin-dashboard.html' : 'foodlisting.html';
+                    
+                    window.location.href = data.redirectUrl || defaultRedirect;
+                } else {
+                    displayServerError(data.message || 'Invalid email or password.');
+                }
+            } catch (err) {
+                console.error('Login request failed:', err);
+                displayServerError('Unable to connect to the login service. Please try again.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Sign In';
+            }
+        });
+    </script>
+</body>
+</html>

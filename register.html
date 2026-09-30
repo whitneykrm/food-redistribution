@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account - Urban Surplus Food Redistribution</title>
+  <link rel="icon" href="images/logo.svg" type="image/svg+xml">
+  <link rel="icon" href="images/favicon.ico" sizes="any">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .error-text { color: #d32f2f; font-size: 0.85rem; margin-top: 4px; display: none; }
+    .input-error { border: 1px solid #d32f2f !important; }
+    .server-error { background-color: #fde8e8; color: #d32f2f; padding: 10px 14px; border-radius: 6px; border: 1px solid #f8b4b4; margin-bottom: 16px; font-size: 0.9rem; display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Dynamic Navbar Injection -->
+  <div id="navbar-placeholder"></div>
+
+  <main class="container">
+    <div class="card" style="margin: 40px auto; max-width: 500px;">
+      <h2>Create Account</h2>
+      <p class="subtitle">Join the surplus food redistribution network</p>
+
+      <div id="serverError" class="server-error"></div>
+
+      <form id="registerForm" novalidate>
+        <div class="form-row" style="display: flex; gap: 12px;">
+          <div class="form-group" style="flex: 1;">
+            <label for="first_name">First Name</label>
+            <input type="text" id="first_name" name="first_name" required>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="last_name">Last Name</label>
+            <input type="text" id="last_name" name="last_name" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="phone_number">Phone Number</label>
+          <input type="text" id="phone_number" name="phone_number" placeholder="07XXXXXXXX" required>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email" required placeholder="example@domain.com">
+          <small class="error-text" id="emailError"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="Create a strong password" required>
+          <small class="error-text" id="passwordError"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="role">Register As</label>
+          <select id="role" name="role" required>
+            <option value="" disabled selected>Select user role</option>
+            <option value="consumer">Consumer</option>
+            <option value="vendor">Vendor</option>
+          </select>
+          <small class="error-text" id="roleError"></small>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">Create Account</button>
+      </form>
+
+      <p class="footer-text" style="margin-top: 16px;">
+        Already have an account? <a href="login.html">Sign In here</a>
+      </p>
+    </div>
+  </main>
+
+  <!-- Dynamic Footer Injection -->
+  <div id="footer-placeholder"></div>
+
+  <script src="js/load-fragments.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadFragment('navbar-placeholder', 'includes/navbar.html');
+      await loadFragment('footer-placeholder', 'includes/footer.html');
+    });
+
+    const registerForm = document.getElementById('registerForm');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const roleSelect = document.getElementById('role');
+    const submitBtn = document.getElementById('submitBtn');
+
+    const emailError = document.getElementById('emailError');
+    const passwordError = document.getElementById('passwordError');
+    const roleError = document.getElementById('roleError');
+    const serverError = document.getElementById('serverError');
+
+    function showError(input, errorEl, message) {
+      errorEl.textContent = message;
+      errorEl.style.display = 'block';
+      if (input) input.classList.add('input-error');
+    }
+
+    function clearError(input, errorEl) {
+      errorEl.textContent = '';
+      errorEl.style.display = 'none';
+      if (input) input.classList.remove('input-error');
+    }
+
+    function hideServerError() {
+      serverError.textContent = '';
+      serverError.style.display = 'none';
+    }
+
+    function displayServerError(message) {
+      serverError.textContent = message;
+      serverError.style.display = 'block';
+    }
+
+    function validateEmail() {
+      const email = emailInput.value.trim();
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (!emailPattern.test(email)) {
+        showError(emailInput, emailError, 'Please enter a valid email address.');
+        return false;
+      }
+
+      const localPart = email.split('@')[0];
+      if (/^\d+$/.test(localPart) || localPart === '123') {
+        showError(emailInput, emailError, 'Email username cannot be purely numbers or "123".');
+        return false;
+      }
+
+      clearError(emailInput, emailError);
+      return true;
+    }
+
+    function validatePassword() {
+      const password = passwordInput.value;
+      const forbiddenPasswords = ['123', '1234', '12345', '123456', '12345678', 'password'];
+
+      if (password.length === 0) {
+        showError(passwordInput, passwordError, 'Please enter a password.');
+        return false;
+      }
+
+      if (forbiddenPasswords.includes(password.toLowerCase()) || /^\d+$/.test(password)) {
+        showError(passwordInput, passwordError, 'Password cannot be simple numbers like "123" or numbers only.');
+        return false;
+      }
+
+      if (password.length < 6) {
+        showError(passwordInput, passwordError, 'Password must be at least 6 characters long.');
+        return false;
+      }
+
+      clearError(passwordInput, passwordError);
+      return true;
+    }
+
+    emailInput.addEventListener('input', () => {
+      hideServerError();
+      validateEmail();
+    });
+    passwordInput.addEventListener('input', () => {
+      hideServerError();
+      validatePassword();
+    });
+
+    registerForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      hideServerError();
+
+      const isEmailValid = validateEmail();
+      const isPasswordValid = validatePassword();
+
+      if (!roleSelect.value) {
+        showError(roleSelect, roleError, 'Please select a role.');
+        return;
+      } else {
+        clearError(roleSelect, roleError);
+      }
+
+      if (!isEmailValid || !isPasswordValid) return;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating Account...';
+
+      const formData = {
+        first_name: document.getElementById('first_name').value.trim(),
+        last_name: document.getElementById('last_name').value.trim(),
+        phone_number: document.getElementById('phone_number').value.trim(),
+        email: emailInput.value.trim().toLowerCase(),
+        password: passwordInput.value,
+        role: roleSelect.value
+      };
+
+      try {
+        // Targeted directly to PHP API endpoint
+        const response = await fetch('api/register.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          // If a vendor signs up, redirect to vendor setup page; otherwise send to login
+          const targetUrl = result.data?.role === 'vendor' ? 'vendor-details.html' : 'login.html';
+          window.location.href = result.redirectUrl || targetUrl;
+        } else {
+          displayServerError(result.message || 'Registration failed. Please check your details.');
+        }
+      } catch (err) {
+        console.error('Registration failed:', err);
+        displayServerError('Unable to connect to the backend server. Please try again.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Account';
+      }
+    });
+  </script>
+</body>
+</html>
