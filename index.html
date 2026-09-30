@@ -14,14 +14,14 @@
 
     <main class="guest">
         <a href="index.html" class="guest-logo">
-            <img src="images/logo.svg" alt="Logo" width="40" height="40">
+            <img src="images/logo.svg" alt="Food Connect Logo" width="40" height="40">
             Food Redistribution
         </a>
 
         <div class="card center">
             <h1 class="welcome-title">WELCOME TO FOOD CONNECT</h1>
 
-            <!-- Dynamic button area based on session -->
+            <!-- Dynamic button area -->
             <div id="welcome-actions">
                 <p>Loading...</p>
             </div>
@@ -30,48 +30,59 @@
 
     <div id="footer-placeholder"></div>
 
+    <!-- 1. Include fragment loader -->
     <script src="js/load-fragments.js"></script>
+
+    <!-- 2. Auth Check Script -->
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            // 1. Inject UI fragments
-            await loadFragment('navbar-placeholder', 'includes/navbar.html');
-            await loadFragment('footer-placeholder', 'includes/footer.html');
+            // Load header/footer templates safely
+            if (typeof loadFragment === 'function') {
+                await loadFragment('navbar-placeholder', 'includes/navbar.html');
+                await loadFragment('footer-placeholder', 'includes/footer.html');
+            }
 
-            // 2. Dynamic Session Check
+            // Perform authentication check
             checkAuth();
         });
 
         async function checkAuth() {
             const container = document.getElementById('welcome-actions');
+
             try {
-                // Corrected endpoint path to match your project tree
+                // Correct relative path to your PHP endpoint
                 const response = await fetch('api/session-check.php');
-                
-                if (!response.ok) throw new Error('Unauthenticated');
+
+                // If user is not logged in (401) or request fails
+                if (!response.ok) {
+                    showGuestButtons(container);
+                    return;
+                }
 
                 const result = await response.json();
 
                 if (result.success && result.data) {
                     const role = result.data.role || 'consumer';
-                    let dashboardUrl = 'foodlisting.html'; // Default consumer destination
+                    let dashboardUrl = 'foodlisting.html';
 
                     if (role === 'vendor') dashboardUrl = 'vendor-dashboard.html';
                     if (role === 'admin') dashboardUrl = 'admin-dashboard.html';
 
                     container.innerHTML = `
-                        <a href="${dashboardUrl}" class="button">Go to Dashboard</a>
+                        <a href="${dashboardUrl}" class="button btn-signin">Go to Dashboard</a>
                     `;
                 } else {
                     showGuestButtons(container);
                 }
             } catch (err) {
+                console.warn('Session check failed or user is guest:', err);
                 showGuestButtons(container);
             }
         }
 
         function showGuestButtons(container) {
             container.innerHTML = `
-                <div class="welcome-actions">
+                <div class="welcome-actions" style="display: flex; gap: 12px; justify-content: center; margin-top: 16px;">
                     <a href="login.html" class="btn-signin">Sign In</a>
                     <a href="register.html" class="btn-register">Create Account</a>
                 </div>
