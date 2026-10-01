@@ -66,21 +66,14 @@
     <!-- Dynamic Footer Placeholder -->
     <div id="footer-placeholder"></div>
 
-    <script src="js/load-fragments.js"></script>
+    <script src="js/load-fragment.js"></script>
     <script>
-        // Inject Navbar Partial
-        fetch('includes/navbar.html')
-            .then(res => res.text())
-            .then(data => {
-                document.getElementById('nav-placeholder').innerHTML = data;
-            }).catch(() => {});
-
-        // Inject Footer Partial
-        fetch('includes/footer.html')
-            .then(res => res.text())
-            .then(data => {
-                document.getElementById('footer-placeholder').innerHTML = data;
-            }).catch(() => {});
+        // Inject Navbar and Footer via loadFragment(), which re-executes any
+        // <script> tags inside the fragment — plain fetch().innerHTML would
+        // silently skip running navbar.html's session-check logic, leaving
+        // the Logout button permanently stuck as "Login".
+        loadFragment('nav-placeholder', 'includes/navbar.html');
+        loadFragment('footer-placeholder', 'includes/footer.html');
 
         // Helper function for feedback banners
         function showAlert(message, isSuccess = true) {

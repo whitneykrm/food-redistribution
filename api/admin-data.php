@@ -39,14 +39,15 @@ try {
 
     // Real transactions = payment, joined through orders back to the
     // listing, the vendor's owner, and the consumer's owner.
+    // NOTE: table is `listings` (not `foodlistings`) in this database.
     $payments = $pdo->query(
-        "SELECT f.item_name,
+        "SELECT l.item_name,
                 vu.firstname AS vendor_first, vu.lastname AS vendor_last,
                 cu.firstname AS consumer_first, cu.lastname AS consumer_last,
                 p.amount, p.payment_method, p.payment_status
          FROM payment p
          JOIN orders o ON o.order_id = p.order_id
-         JOIN foodlistings f ON f.listings_id = o.listing_id
+         JOIN listings l ON l.listings_id = o.listing_id
          JOIN vendor v ON v.vendor_id = p.vendor_id
          JOIN users vu ON vu.user_id = v.user_id
          JOIN consumer c ON c.consumer_id = o.consumer_id
