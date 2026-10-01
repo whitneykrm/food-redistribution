@@ -1,0 +1,80 @@
+<nav class="navbar">
+    <!-- Brand / Logo Section -->
+    <a href="index.html" class="navbar-brand">
+        <div class="logo-text">
+            <span class="brand-food">Food</span>
+            <span class="brand-connect">Connect</span>
+        </div>
+        <span class="brand-tagline">GOOD FOOD. GREATER IMPACT.</span>
+    </a>
+
+    <!-- Dynamic Navigation Links -->
+    <div class="navbar-links" id="navbar-links">
+        <a href="index.html">Home</a>
+    </div>
+
+    <!-- Dynamic Auth Action (Login / Logout only) -->
+    <div class="navbar-user" id="navbar-user">
+        <a href="login.html" id="auth-action-btn" class="btn-auth">Login</a>
+    </div>
+</nav>
+
+<script>
+(async function initNavbar() {
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    const isActive = (page) => currentPage === page ? 'active' : '';
+
+    try {
+        const response = await fetch('api/session-check.php');
+        const data = await response.json();
+
+        const linksContainer = document.getElementById('navbar-links');
+        const actionBtn = document.getElementById('auth-action-btn');
+
+        if (data.loggedIn && data.user) {
+            const role = data.role || data.user.role || 'consumer';
+
+            actionBtn.textContent = 'Logout';
+            actionBtn.href = 'logout.php';
+            actionBtn.classList.add('btn-logout');
+            actionBtn.onclick = async (e) => {
+                e.preventDefault();
+                try {
+                    await fetch('logout.php', { method: 'POST' });
+                } catch (err) {
+                    console.log('Logout completed');
+                }
+                window.location.href = 'index.html';
+            };
+
+            // Cleaned-up Vendor Links (No extra listings/orders clutter)
+            if (role === 'vendor') {
+                linksContainer.innerHTML = `
+                    <a href="index.html" class="${isActive('index.html')}">Home</a>
+                    <a href="vendor-dashboard.html" class="${isActive('vendor-dashboard.html')}">Vendor Portal</a>
+                    <a href="vendor-details.html" class="${isActive('vendor-details.html')}">Business Profile</a>
+                `;
+            } else if (role === 'admin') {
+                linksContainer.innerHTML = `
+                    <a href="index.html" class="${isActive('index.html')}">Home</a>
+                    <a href="admin-dashboard.html" class="${isActive('admin-dashboard.html')}">Admin Dashboard</a>
+                `;
+            } else {
+                linksContainer.innerHTML = `
+                    <a href="index.html" class="${isActive('index.html')}">Home</a>
+                `;
+            }
+        } else {
+            linksContainer.innerHTML = `
+                <a href="index.html" class="${isActive('index.html')}">Home</a>
+            `;
+            actionBtn.textContent = 'Login';
+            actionBtn.href = 'login.html';
+            actionBtn.classList.remove('btn-logout');
+            actionBtn.onclick = null;
+        }
+    } catch (err) {
+        console.error('Error initializing navbar:', err);
+    }
+})();
+</script>

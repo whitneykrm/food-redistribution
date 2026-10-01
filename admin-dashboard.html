@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Food Connect</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/admin-dashboard.css">
+</head>
+<body>
+
+    <div id="navbar-container"></div>
+
+    <div class="dashboard-container">
+        <div id="flash" class="flash" style="display:none;"></div>
+
+        <div class="dashboard-header">
+            <h2>Admin Control Panel</h2>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span class="stat-label">Total Users</span>
+                <span class="stat-number" id="statTotalUsers">—</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Vendors</span>
+                <span class="stat-number" id="statVendors">—</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Consumers</span>
+                <span class="stat-number" id="statConsumers">—</span>
+            </div>
+            <div class="stat-box stat-alert">
+                <span class="stat-label">Pending Verifications</span>
+                <span class="stat-number" id="statPending">—</span>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <h3>Pending Vendor Verifications</h3>
+            <div id="pendingVendorsContainer"><p class="muted">Loading…</p></div>
+        </div>
+
+        <div class="table-card">
+            <h3>Manage Users</h3>
+            <div id="usersContainer"><p class="muted">Loading…</p></div>
+        </div>
+
+        <div class="table-card">
+            <h3>Recent Payments</h3>
+            <div id="paymentsContainer"><p class="muted">Loading…</p></div>
+        </div>
+    </div>
+
+    <div id="footer-container"></div>
+
+    <script src="js/load-fragment.js"></script>
+    <script>
+        let currentAdminId = null;
+
+        function showFlash(type, message) {
+            const flash = document.getElementById('flash');
+            flash.className = 'flash flash-' + type;
+            flash.textContent = message;
+            flash.style.display = 'block';
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str ?? '';
+            return div.innerHTML;
+        }
+
+        function renderPendingVendors(vendors) {
+            const container = document.getElementById('pendingVendorsContainer');
+            if (vendors.length === 0) {
+                container.innerHTML = '<p class="muted">No vendors are waiting for verification.</p>';
+                return;
+            }
+            let html = '<table><thead><tr><th>Business</th><th>Owner</th><th>Email</th><th>Action</th></tr></thead><tbody>';
+            for (const v of vendors) {
+                html += `<tr>
+                    <td>${escapeHtml(v.business_name)}</td>
+                    <td>${escapeHtml(v.firstname)} ${escapeHtml(v.lastname)}</td>
+                    <td>${escapeHtml(v.email)}</td>
+                    <td><button class="btn-verify" onclick="verifyVendor(${v.vendor_id})">Verify</button></td>
+                </tr>`;
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function renderUsers(users) {
+            const container = document.getElementById('usersContainer');
+            let html = '<table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Action</th></tr></thead><tbody>';
+            for (const u of users) {
+                const isSelf = u.user_id === currentAdminId;
+                html += `<tr>
+                    <td>${escapeHtml(u.firstname)} ${escapeHtml(u.lastname)}</td>
+                    <td>${escapeHtml(u.email)}</td>
+                    <td>${escapeHtml(u.role.charAt(0).toUpperCase() + u.role.slice(1))}</td>
+                    <td>${isSelf
+                        ? '<span class="muted">(you)</span>'
+                        : `<button class="btn-delete" onclick="deleteUser(${u.user_id})">Delete</button>`}</td>
+                </tr>`;
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function renderPayments(payments) {
+            const container = document.getElementById('paymentsContainer');
+            if (payments.length === 0) {
+                container.innerHTML = '<p class="muted">No payments recorded yet.</p>';
+                return;
+            }
+            let html = '<table><thead><tr><th>Item</th><th>Vendor</th><th>Consumer</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead><tbody>';
+            for (const p of payments) {
+                html += `<tr>
+                    <td>${escapeHtml(p.item_name)}</td>
+                    <td>${escapeHtml(p.vendor_first)} ${escapeHtml(p.vendor_last)}</td>
+                    <td>${escapeHtml(p.consumer_first)} ${escapeHtml(p.consumer_last)}</td>
+                    <td>KES ${Number(p.amount).toFixed(2)}</td>
+                    <td>${escapeHtml(p.payment_method)}</td>
+                    <td>${escapeHtml(p.payment_status)}</td>
+                </tr>`;
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        async function loadDashboard() {
+            const response = await fetch('api/admin-data.php');
+            if (!response.ok) {
+                showFlash('error', 'Could not load dashboard data.');
+                return;
+            }
+            const data = await response.json();
+
+            currentAdminId = data.currentAdminId;
+
+            document.getElementById('statTotalUsers').textContent = data.stats.totalUsers;
+            document.getElementById('statVendors').textContent = data.stats.totalVendors;
+            document.getElementById('statConsumers').textContent = data.stats.totalConsumers;
+            document.getElementById('statPending').textContent = data.stats.pendingCount;
+
+            renderPendingVendors(data.pendingVendors);
+            renderUsers(data.users);
+            renderPayments(data.payments);
+        }
+
+        async function verifyVendor(vendorId) {
+            const res = await fetch('api/admin-actions.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'verify_vendor', vendor_id: vendorId }),
+            });
+            const data = await res.json();
+            showFlash(data.success ? 'success' : 'error', data.message || data.error);
+            if (data.success) loadDashboard();
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('Delete this user?')) return;
+            const res = await fetch('api/admin-actions.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'delete_user', user_id: userId }),
+            });
+            const data = await res.json();
+            showFlash(data.success ? 'success' : 'error', data.message || data.error);
+            if (data.success) loadDashboard();
+        }
+
+        // Guard this page ourselves, the same way vendor-details.html does —
+        // js/auth-guard.js doesn't exist in this project.
+        async function checkAdminAccess() {
+            try {
+                const res = await fetch('api/session-check.php');
+                const data = await res.json();
+                if (!data.loggedIn || (data.role || data.user?.role) !== 'admin') {
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                return true;
+            } catch (err) {
+                console.error('Session check failed:', err);
+                window.location.href = 'login.html';
+                return false;
+            }
+        }
+
+        (async () => {
+            const allowed = await checkAdminAccess();
+            if (!allowed) return;
+
+            loadFragment('navbar-container', 'includes/navbar.html');
+            loadFragment('footer-container', 'includes/footer.html');
+            loadDashboard();
+        })();
+    </script>
+</body>
+</html>
