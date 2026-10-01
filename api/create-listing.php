@@ -17,12 +17,19 @@ if (empty($data['item_name']) || empty($data['quantity']) || empty($data['origin
 
 try {
     
-    $stmt = $pdo->prepare("SELECT vendor_id FROM vendor WHERE user_id = ?");
+    $stmt = $pdo->prepare("SELECT vendor_id, verification_status FROM vendor WHERE user_id = ?");
     $stmt->execute([$_SESSION['user_id']]);
     $vendor = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$vendor) {
         echo json_encode(['success' => false, 'message' => 'Vendor profile not completed.']);
+        exit;
+    }
+
+    // Only vendors an admin has verified may post listings.
+    if ($vendor['verification_status'] !== 'verified') {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Your business is pending verification. You can add listings once an admin verifies your account.']);
         exit;
     }
 

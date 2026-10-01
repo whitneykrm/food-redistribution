@@ -7,6 +7,14 @@
     <link rel="icon" href="images/logo.svg" type="image/svg+xml">
     <link rel="icon" href="images/favicon.ico" sizes="any">
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        .profile-details { margin: 0 0 20px; }
+        .profile-details dt { font-size: .85rem; color: var(--grey); margin-top: 14px; }
+        .profile-details dd { margin: 4px 0 0; font-size: 1.05rem; font-weight: 600; }
+        .status-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .85rem; }
+        .status-badge.verified { background: #d4edda; color: #155724; }
+        .status-badge.pending  { background: #fff3cd; color: #856404; }
+    </style>
 </head>
 <body>
 
@@ -17,12 +25,31 @@
     <main class="container">
         <div class="card" style="margin: 40px auto; max-width: 500px;">
             <h2>Vendor Profile</h2>
-            <p class="subtitle">Complete your business and location details</p>
+            <p class="subtitle" id="page-subtitle">Complete your business and location details</p>
 
             <!-- Alert Banner for Feedback -->
             <div id="alert-msg" style="display: none; padding: 10px; margin-bottom: 15px; border-radius: 4px;"></div>
 
-            <form id="vendor-form">
+            <!-- Read-only view, shown once the vendor has a saved profile -->
+            <div id="profile-view" style="display: none;">
+                <dl class="profile-details">
+                    <dt>Business Name</dt>
+                    <dd id="view-businessname"></dd>
+
+                    <dt>Verification Status</dt>
+                    <dd><span id="view-status" class="status-badge"></span></dd>
+
+                    <dt>City</dt>
+                    <dd id="view-city"></dd>
+
+                    <dt>Location / Address</dt>
+                    <dd id="view-address"></dd>
+                </dl>
+
+                <button type="button" class="btn-submit" id="edit-btn">Edit Details</button>
+            </div>
+
+            <form id="vendor-form" style="display: none;">
                 <div class="form-group">
                     <label for="businessname">Business Name</label>
                     <input type="text" id="businessname" name="businessname" placeholder="e.g. Green Grocery Market" required>
@@ -44,6 +71,7 @@
                 </div>
 
                 <button type="submit" class="btn-submit" id="submit-btn">Complete Registration</button>
+                <button type="button" class="button button-light" id="cancel-btn" style="display: none; width: 100%; margin-top: 10px;">Cancel</button>
             </form>
         </div>
     </main>
@@ -51,7 +79,7 @@
     <!-- Dynamic Footer Placeholder -->
     <div id="footer-placeholder"></div>
 
-    <script src="js/load-fragments.js"></script>
+    <script src="js/load-fragment.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             // 1. Inject UI fragments
@@ -92,25 +120,70 @@
                 if (vendorRes.ok) {
                     const vendorData = await vendorRes.json();
 
-                    if (vendorData.success && vendorData.data) {
-                        const v = vendorData.data;
-                        document.getElementById('businessname').value = v.business_name || '';
-                        document.getElementById('city').value = v.city || '';
-                        document.getElementById('address').value = v.address || '';
-
-                        const status = v.verification_status || 'Pending';
-                        document.getElementById('verificationstatus').value = status.charAt(0).toUpperCase() + status.slice(1);
-
-                        if (v.business_name) {
-                            document.getElementById('submit-btn').textContent = 'Update Profile';
-                        }
+                    if (vendorData.success && vendorData.data && vendorData.data.business_name) {
+                        currentProfile = vendorData.data;
+                        showProfileView();
+                        return;
                     }
                 }
+
+                // No saved profile yet: first-time setup form
+                showForm();
             } catch (err) {
                 console.error('Failed to load vendor profile:', err);
                 showAlert('Failed to load existing profile details.', false);
+                showForm();
             }
         }
+
+        let currentProfile = null;
+
+        function formatStatus(status) {
+            const s = status || 'pending';
+            return s.charAt(0).toUpperCase() + s.slice(1);
+        }
+
+        // Show the saved details read-only
+        function showProfileView() {
+            const v = currentProfile;
+            document.getElementById('view-businessname').textContent = v.business_name || '';
+            document.getElementById('view-city').textContent = v.city || '';
+            document.getElementById('view-address').textContent = v.address || '';
+
+            const statusEl = document.getElementById('view-status');
+            statusEl.textContent = formatStatus(v.verification_status);
+            statusEl.className = 'status-badge ' + (v.verification_status === 'verified' ? 'verified' : 'pending');
+
+            document.getElementById('page-subtitle').textContent = 'Your business and location details';
+            document.getElementById('vendor-form').style.display = 'none';
+            document.getElementById('profile-view').style.display = 'block';
+        }
+
+        // Show the form, prefilled when editing an existing profile
+        function showForm() {
+            const v = currentProfile;
+            const isEdit = Boolean(v);
+
+            document.getElementById('businessname').value = v?.business_name || '';
+            document.getElementById('city').value = v?.city || '';
+            document.getElementById('address').value = v?.address || '';
+            document.getElementById('verificationstatus').value = formatStatus(v?.verification_status);
+
+            document.getElementById('submit-btn').textContent = isEdit ? 'Update Profile' : 'Complete Registration';
+            document.getElementById('cancel-btn').style.display = isEdit ? 'block' : 'none';
+            document.getElementById('page-subtitle').textContent = isEdit
+                ? 'Update your business and location details'
+                : 'Complete your business and location details';
+
+            document.getElementById('profile-view').style.display = 'none';
+            document.getElementById('vendor-form').style.display = 'block';
+        }
+
+        document.getElementById('edit-btn').addEventListener('click', showForm);
+        document.getElementById('cancel-btn').addEventListener('click', () => {
+            document.getElementById('alert-msg').style.display = 'none';
+            showProfileView();
+        });
 
         // Handle Form Submission (POST request to api/vendor-details.php)
         document.getElementById('vendor-form').addEventListener('submit', async (e) => {
@@ -137,6 +210,14 @@
                 if (response.ok && result.success) {
                     showAlert(result.message || 'Profile saved successfully!', true);
 
+                    // Editing an existing profile: go back to the read-only view
+                    if (currentProfile) {
+                        Object.assign(currentProfile, payload);
+                        showProfileView();
+                        return;
+                    }
+
+                    // First-time setup: continue to the dashboard
                     setTimeout(() => {
                         window.location.href = result.redirectUrl || 'vendor-dashboard.html';
                     }, 1200);

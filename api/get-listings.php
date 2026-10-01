@@ -17,7 +17,7 @@ $user_id = $_SESSION['user_id'];
 
 try {
     
-    $stmt = $pdo->prepare("SELECT vendor_id FROM vendor WHERE user_id = ?");
+    $stmt = $pdo->prepare("SELECT vendor_id, verification_status FROM vendor WHERE user_id = ?");
     $stmt->execute([$user_id]);
     $vendor = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -36,7 +36,8 @@ try {
     $listings = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode([
-        'success' => true, 
+        'success' => true,
+        'verificationStatus' => $vendor['verification_status'],
         'listings' => $listings
     ]);
 } catch (PDOException $e) {

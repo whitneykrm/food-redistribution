@@ -27,6 +27,9 @@
         <!-- Create Listing Form -->
         <div class="table-card">
             <h3>List Surplus Food Item</h3>
+            <p id="verification-notice" class="flash flash-error" style="display: none; margin-bottom: 20px;">
+                Your business is pending verification. You can add listings once an admin verifies your account.
+            </p>
             <form id="add-listing-form" class="form-row">
                 <div class="form-group">
                     <label for="itemName">Item Name</label>
@@ -90,6 +93,13 @@
             return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
+        // Unverified vendors can't add listings (also enforced in create-listing.php)
+        function setListingFormEnabled(isVerified) {
+            document.getElementById('verification-notice').style.display = isVerified ? 'none' : 'block';
+            document.querySelectorAll('#add-listing-form input, #add-listing-form button')
+                .forEach(el => { el.disabled = !isVerified; });
+        }
+
         // Fetch and Render Listings Table from PHP API
         async function fetchListings() {
             const container = document.getElementById('listings-container');
@@ -114,6 +124,8 @@
                     container.innerHTML = `<p class="muted">${escapeHtml(data.message || 'Failed to load listings.')}</p>`;
                     return;
                 }
+
+                setListingFormEnabled(data.verificationStatus === 'verified');
 
                 if (!data.listings || data.listings.length === 0) {
                     container.innerHTML = '<p class="muted">You haven\'t listed any surplus items yet.</p>';
