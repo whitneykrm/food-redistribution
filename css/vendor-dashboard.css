@@ -1,4 +1,3 @@
-
 .dashboard-container {
     max-width: 1000px;
     margin: 0 auto;
@@ -94,6 +93,27 @@
 }
 
 .btn-delete:hover {
+    background-color: #bd2130;
+}
+
+/* Navbar Logout button (injected by includes/navbar.html).
+   Plain .btn-logout works on its own, same as in admin-dashboard.css;
+   the .navbar-prefixed selector also wins over any generic link styling. */
+.btn-logout,
+.navbar .navbar-user a.btn-logout {
+    display: inline-block;
+    background-color: #dc3545;
+    color: #ffffff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background 0.2s ease;
+}
+
+.btn-logout:hover,
+.navbar .navbar-user a.btn-logout:hover {
     background-color: #bd2130;
 }
 
