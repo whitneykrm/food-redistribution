@@ -39,8 +39,6 @@ try {
     // 2. Verify account and password
     if ($user && password_verify($password, $user['password'])) {
 
-        // Normalize the stored role too, so casing differences in the DB
-        // (e.g. 'Vendor' vs 'vendor') never cause a false mismatch.
         $storedRole = strtolower($user['role']);
 
         // Optional role lock verification
@@ -59,7 +57,7 @@ try {
         $_SESSION['role']      = $storedRole;
 
         // 4. Dynamic redirection logic
-        $redirectUrl = 'foodlisting.html';
+        $redirectUrl = 'consumer-dashboard.html';
 
         if ($storedRole === 'vendor') {
             // vendor.business_name lives in its own table, keyed by user_id —

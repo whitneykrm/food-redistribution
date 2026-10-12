@@ -75,7 +75,7 @@
     <!-- Inject Dynamic Footer -->
     <div id="footer-placeholder"></div>
 
-    <script src="js/load-fragments.js"></script>
+    <script src="js/load-fragment.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             await loadFragment('navbar-placeholder', 'includes/navbar.html');
@@ -188,7 +188,7 @@
                 if (response.ok && data.success) {
                     // Redirect according to user role or API instruction
                     const defaultRedirect = data.data?.role === 'vendor' ? 'vendor-dashboard.html' :
-                                           data.data?.role === 'admin' ? 'admin-dashboard.html' : 'foodlisting.html';
+                                           data.data?.role === 'admin' ? 'admin-dashboard.html' : 'consumer-dashboard.html';
                     
                     window.location.href = data.redirectUrl || defaultRedirect;
                 } else {
