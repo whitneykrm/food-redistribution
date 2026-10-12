@@ -1,0 +1,136 @@
+async function loadListings() {
+    const grid = $('listings-grid');
+    try {
+        const res = await fetch('api/get-public-listings.php');
+        if (res.status === 401) { window.location.href = 'login.html'; return; }
+        const data = await res.json();
+
+        if (!data.success) {
+            grid.innerHTML = `<p class="empty">${escapeHtml(data.message || 'Failed to load listings.')}</p>`;
+            return;
+        }
+        allListings = data.listings;
+        populateCities();
+        renderListings();
+        renderRedeem();
+    } catch (err) {
+        console.error('Error loading listings:', err);
+        grid.innerHTML = '<p class="empty">Failed to load listings.</p>';
+    }
+}
+
+function populateCities() {
+    const select = $('filter-city');
+    const current = select.value;
+    const cities = [...new Set(allListings.map(l => l.city).filter(Boolean))].sort();
+    select.innerHTML = '<option value="">All locations</option>' +
+        cities.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    select.value = cities.includes(current) ? current : '';
+}
+
+function renderListings() {
+    const grid = $('listings-grid');
+    const search = $('filter-search').value.trim().toLowerCase();
+    const city = $('filter-city').value;
+    const sort = $('filter-sort').value;
+    const now = new Date();
+
+    const items = allListings.filter(l => {
+        if (parseDate(l.expiry_time) <= now) return false;
+        if (city && l.city !== city) return false;
+        if (search && !(l.item_name.toLowerCase().includes(search) || l.business_name.toLowerCase().includes(search))) return false;
+        return true;
+    });
+
+    items.sort((a, b) => {
+        if (sort === 'price') return a.discounted_price - b.discounted_price;
+        if (sort === 'discount') return discountPercent(b) - discountPercent(a);
+        return parseDate(a.expiry_time) - parseDate(b.expiry_time);
+    });
+
+    $('results-count').textContent = items.length + (items.length === 1 ? ' listing available' : ' listings available');
+
+    if (items.length === 0) {
+        grid.innerHTML = '<p class="empty">No surplus food matches right now. Try another location or check back soon.</p>';
+        return;
+    }
+
+    grid.innerHTML = items.map(l => {
+        const pct = discountPercent(l);
+        return `
+            <article class="food-card">
+                <div class="vendor-line">
+                    <strong>${escapeHtml(l.business_name)}</strong>
+                    <span>${escapeHtml(l.city)}</span>
+                </div>
+                <h3 class="item-name">${escapeHtml(l.item_name)}</h3>
+                <div class="price-row">
+                    <span class="price-now">KES ${money(l.discounted_price)}</span>
+                    <span class="price-was">KES ${money(l.original_price)}</span>
+                    ${pct > 0 ? `<span class="badge-off">-${pct}%</span>` : ''}
+                    ${l.points > 0 ? `<span class="badge-points">+${l.points} pts</span>` : ''}
+                </div>
+                <div class="meta">
+                    <span>${l.quantity} left</span>
+                    <span>Expires in ${timeLeft(l.expiry_time)}</span>
+                </div>
+                <div class="address">Pickup: ${escapeHtml(l.address)}</div>
+                <div class="redeem-hint">Or redeem for ${l.points_cost} pts</div>
+                <button type="button" class="btn-primary" data-action="reserve" data-id="${l.listings_id}">Reserve</button>
+            </article>`;
+    }).join('');
+}
+
+// ── Reserve flow ───────────────────────────────────────────────
+function openReserveModal(listingId) {
+    const listing = allListings.find(l => l.listings_id === listingId);
+    if (!listing) return;
+    reserveTarget = listing;
+
+    $('reserve-summary').innerHTML = `
+        <strong>${escapeHtml(listing.item_name)}</strong><br>
+        ${escapeHtml(listing.business_name)}, ${escapeHtml(listing.city)}<br>
+        Pickup: ${escapeHtml(listing.address)}<br>
+        Amount: <strong>KES ${money(listing.discounted_price)}</strong>`;
+    $('reserve-modal').classList.add('open');
+}
+
+async function confirmReservation() {
+    if (!reserveTarget) return;
+    const btn = $('reserve-confirm');
+    btn.disabled = true;
+    btn.textContent = 'Reserving...';
+
+    try {
+        const res = await fetch('api/reserve-listing.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                listing_id: reserveTarget.listings_id,
+                payment_method: $('payment-method').value
+            })
+        });
+        if (res.status === 401) { window.location.href = 'login.html'; return; }
+        const result = await res.json();
+        closeModals();
+
+        if (result.success) {
+            showAlert('Reservation confirmed! Show your QR code when you collect.', true);
+            await Promise.all([loadListings(), loadOrders()]);
+            switchTab('orders');
+            const order = myOrders.find(o => o.order_id === result.order_id);
+            if (order && order.points) showAlert(`Reservation confirmed! You'll earn ${order.points} points when you collect your order.`, true);
+            if (order) openQrModal(order);
+        } else {
+            showAlert(result.message || 'Could not reserve this item.', false);
+            loadListings();
+        }
+    } catch (err) {
+        console.error('Reservation failed:', err);
+        closeModals();
+        showAlert('An unexpected error occurred. Please try again.', false);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Confirm Reservation';
+    }
+}
