@@ -9,8 +9,7 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/vendor-dashboard.css">
     <style>
-        /* Navbar Logout button — kept here so it always applies on this page,
-           even if a cached copy of vendor-dashboard.css is being served. */
+        
         .navbar a.btn-logout {
             display: inline-block; background-color: #dc3545; color: #ffffff;
             padding: 10px 20px; border-radius: 8px; font-size: 0.95rem;
@@ -21,7 +20,6 @@
 </head>
 <body>
 
-    <!-- Dynamic Header/Nav Placeholder -->
     <div id="nav-placeholder"></div>
 
     <div class="dashboard-container">
@@ -81,10 +79,6 @@
 
     <script src="js/load-fragment.js"></script>
     <script>
-        // Inject Navbar and Footer via loadFragment(), which re-executes any
-        // <script> tags inside the fragment — plain fetch().innerHTML would
-        // silently skip running navbar.html's session-check logic, leaving
-        // the Logout button permanently stuck as "Login".
         loadFragment('nav-placeholder', 'includes/navbar.html');
         loadFragment('footer-placeholder', 'includes/footer.html');
 
