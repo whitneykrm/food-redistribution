@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Food - Food Connect</title>
+    <link rel="icon" href="images/logo.svg" type="image/svg+xml">
+    <link rel="icon" href="images/favicon.ico" sizes="any">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/consumer-dashboard.css?v=1">
+</head>
+<body>
+
+    <!-- Dynamic Header/Nav Placeholder -->
+    <div id="navbar-placeholder"></div>
+
+    <main class="consumer-container">
+
+        <div id="alert-msg" class="flash" style="display: none;"></div>
+
+        <div class="page-header">
+            <h2>Find Surplus Food</h2>
+            <p>Reserve discounted food from verified local vendors, then collect it with your QR code.</p>
+        </div>
+
+        <div class="points-card">
+            <div>
+                <div class="points-total" id="points-available">0</div>
+                <div class="points-label">Points available</div>
+            </div>
+            <div class="points-stat">
+                <strong id="points-pending">0</strong>
+                <span>Pending until you collect</span>
+            </div>
+            <div class="points-stat">
+                <strong id="points-spent">0</strong>
+                <span>Points redeemed</span>
+            </div>
+            <div class="points-rule" id="points-rule"></div>
+        </div>
+
+        <div class="tabs">
+            <button type="button" class="tab-btn active" data-tab="browse">Browse Listings</button>
+            <button type="button" class="tab-btn" data-tab="orders">My Orders <span class="tab-count" id="orders-count" style="display: none;"></span></button>
+            <button type="button" class="tab-btn" data-tab="points">My Points</button>
+        </div>
+
+        <!-- TAB 1: BROWSE -->
+        <section id="tab-browse" class="tab-panel">
+            <div class="filters">
+                <input type="text" id="filter-search" placeholder="Search food or vendor...">
+                <select id="filter-city">
+                    <option value="">All locations</option>
+                </select>
+                <select id="filter-sort">
+                    <option value="soonest">Expiring soonest</option>
+                    <option value="price">Lowest price</option>
+                    <option value="discount">Biggest discount</option>
+                </select>
+            </div>
+            <p class="results-count" id="results-count"></p>
+            <div id="listings-grid" class="grid"><p class="empty">Loading listings...</p></div>
+        </section>
+
+        <!-- TAB 2: MY ORDERS -->
+        <section id="tab-orders" class="tab-panel" style="display: none;">
+            <div id="orders-list" class="orders-list"><p class="empty">Loading your orders...</p></div>
+        </section>
+
+        <!-- TAB 3: MY POINTS -->
+        <section id="tab-points" class="tab-panel" style="display: none;">
+            <div class="how-it-works" id="points-how"></div>
+            <h3 class="section-title">Redeem your points</h3>
+            <p class="results-count" id="redeem-status"></p>
+            <div id="redeem-grid" class="grid"></div>
+            <h3 class="section-title">Points activity</h3>
+            <div id="points-activity" class="activity-list"></div>
+        </section>
+    </main>
+
+    <!-- Dynamic Footer Placeholder -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Reserve modal -->
+    <div class="modal-backdrop" id="reserve-modal">
+        <div class="modal">
+            <h3>Confirm Reservation</h3>
+            <div class="summary" id="reserve-summary"></div>
+            <div class="form-group">
+                <label for="payment-method">Payment Method</label>
+                <select id="payment-method">
+                    <option value="M-Pesa">M-Pesa</option>
+                    <option value="cash">Cash on collection</option>
+                </select>
+            </div>
+            <p class="note">Your payment is recorded as pending and settled with the vendor when you collect your order. One reservation holds one portion.</p>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" id="reserve-cancel">Cancel</button>
+                <button type="button" class="btn-primary" id="reserve-confirm">Confirm Reservation</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Redeem modal -->
+    <div class="modal-backdrop" id="redeem-modal">
+        <div class="modal">
+            <h3>Redeem Points</h3>
+            <div class="summary" id="redeem-summary"></div>
+            <p class="note">The points are used now and refunded automatically if you cancel the reservation.</p>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" id="redeem-cancel">Cancel</button>
+                <button type="button" class="btn-primary" id="redeem-confirm">Confirm Redemption</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR modal -->
+    <div class="modal-backdrop" id="qr-modal">
+        <div class="modal" style="text-align: center;">
+            <h3>Your Claim QR Code</h3>
+            <div class="address" id="qr-details"></div>
+            <div class="qr-box" id="qr-box"></div>
+            <code class="qr-code-text" id="qr-code-text"></code>
+            <p class="note">Show this code to the vendor when you collect your order.</p>
+            <button type="button" class="btn-primary" id="qr-close">Close</button>
+        </div>
+    </div>
+
+    <!-- Libraries -->
+    <script src="js/load-fragment.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- Consumer dashboard scripts (order matters: core first, main last) -->
+    <script src="js/consumer-core.js?v=1"></script>
+    <script src="js/consumer-browse.js?v=1"></script>
+    <script src="js/consumer-orders.js?v=1"></script>
+    <script src="js/consumer-points.js?v=1"></script>
+    <script src="js/consumer-main.js?v=1"></script>
+</body>
+</html>
