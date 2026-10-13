@@ -1,23 +1,43 @@
-<nav class="navbar">
-    <!-- Brand / Logo Section -->
-    <a href="index.html" class="navbar-brand">
-        <div class="logo-text">
-            <span class="brand-food">Food</span>
-            <span class="brand-connect">Connect</span>
+<style>
+    
+    .navbar .navbar-user a.btn-logout {
+        display: inline-block;
+        background-color: #dc3545;
+        color: #ffffff;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: background 0.2s ease;
+    }
+    .navbar .navbar-user a.btn-logout:hover { background-color: #bd2130; }
+</style>
+
+<header class="navbar-wrapper">
+    <nav class="navbar">
+        <!-- Brand / Logo Section -->
+        <a href="index.html" class="brand-header">
+            <div class="brand-title">
+                <span class="brand-name">
+                    <span class="text-green">Food</span>
+                    <span class="text-orange">Connect</span>
+                </span>
+                <span class="tagline">Good Food. Greater Impact.</span>
+            </div>
+        </a>
+
+        <!-- Dynamic Navigation Links -->
+        <div class="navbar-links" id="navbar-links">
+            <a href="index.html">Home</a>
         </div>
-        <span class="brand-tagline">GOOD FOOD. GREATER IMPACT.</span>
-    </a>
 
-    <!-- Dynamic Navigation Links -->
-    <div class="navbar-links" id="navbar-links">
-        <a href="index.html">Home</a>
-    </div>
-
-    <!-- Dynamic Auth Action (Login / Logout only) -->
-    <div class="navbar-user" id="navbar-user">
-        <a href="login.html" id="auth-action-btn" class="btn-auth">Login</a>
-    </div>
-</nav>
+        <!-- Dynamic Auth Action (Login / Logout only) -->
+        <div class="navbar-user" id="navbar-user">
+            <a href="login.html" id="auth-action-btn" class="btn-nav-login">Login</a>
+        </div>
+    </nav>
+</header>
 
 <script>
 (async function initNavbar() {
@@ -36,6 +56,7 @@
 
             actionBtn.textContent = 'Logout';
             actionBtn.href = 'logout.php';
+            actionBtn.classList.remove('btn-nav-login');
             actionBtn.classList.add('btn-logout');
             actionBtn.onclick = async (e) => {
                 e.preventDefault();
@@ -47,7 +68,6 @@
                 window.location.href = 'index.html';
             };
 
-            // Cleaned-up Vendor Links (No extra listings/orders clutter)
             if (role === 'vendor') {
                 linksContainer.innerHTML = `
                     <a href="index.html" class="${isActive('index.html')}">Home</a>
@@ -60,9 +80,27 @@
                     <a href="admin-dashboard.html" class="${isActive('admin-dashboard.html')}">Admin Dashboard</a>
                 `;
             } else {
+                // Consumer: Home, Browse Listings, My Orders, My Points.
+                // The three dashboard links switch sections using the URL hash.
+                const hashTab = () => (window.location.hash || '#browse').replace('#', '');
+                const activeTab = () => currentPage === 'consumer-dashboard.html' ? hashTab()
+                                      : currentPage === 'checkout.html' ? 'browse' : '';
+                const tabLink = (tab, label) =>
+                    `<a href="consumer-dashboard.html#${tab}" data-tab="${tab}" class="${activeTab() === tab ? 'active' : ''}">${label}</a>`;
+
                 linksContainer.innerHTML = `
                     <a href="index.html" class="${isActive('index.html')}">Home</a>
+                    ${tabLink('browse', 'Browse Listings')}
+                    ${tabLink('orders', 'My Orders')}
+                    ${tabLink('points', 'My Points')}
                 `;
+
+                // Keep the highlight in step when the section changes
+                window.addEventListener('hashchange', () => {
+                    linksContainer.querySelectorAll('a[data-tab]').forEach(a => {
+                        a.classList.toggle('active', a.dataset.tab === activeTab());
+                    });
+                });
             }
         } else {
             linksContainer.innerHTML = `
@@ -71,6 +109,7 @@
             actionBtn.textContent = 'Login';
             actionBtn.href = 'login.html';
             actionBtn.classList.remove('btn-logout');
+            actionBtn.classList.add('btn-nav-login');
             actionBtn.onclick = null;
         }
     } catch (err) {
