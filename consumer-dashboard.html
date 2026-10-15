@@ -17,12 +17,38 @@
 
         <div id="alert-msg" class="flash" style="display: none;"></div>
 
+        <!-- Shared header (always visible) -->
+        <div class="page-header">
+            <h2>Find Surplus Food</h2>
+            <p>Reserve discounted food from verified local vendors, then collect it with your QR code.</p>
+        </div>
+
+        <!-- Shared points card (always visible) -->
+        <div class="points-card">
+            <div>
+                <div class="points-total" id="points-available">0</div>
+                <div class="points-label">Points available</div>
+            </div>
+            <div class="points-stat">
+                <strong id="points-pending">0</strong>
+                <span>Pending until you collect</span>
+            </div>
+            <div class="points-stat">
+                <strong id="points-spent">0</strong>
+                <span>Points redeemed</span>
+            </div>
+            <div class="points-rule" id="points-rule"></div>
+        </div>
+
+        <!-- Tab bar -->
+        <nav class="tabs">
+            <button type="button" class="tab-btn active" data-tab="browse">Browse Listings</button>
+            <button type="button" class="tab-btn" data-tab="orders">My Orders</button>
+            <button type="button" class="tab-btn" data-tab="points">My Points</button>
+        </nav>
+
         <!-- BROWSE LISTINGS -->
         <section id="tab-browse" class="tab-panel">
-            <div class="page-header">
-                <h2>Find Surplus Food</h2>
-                <p>Reserve discounted food from verified local vendors, then collect it with your QR code.</p>
-            </div>
             <div class="filters">
                 <input type="text" id="filter-search" placeholder="Search food or vendor...">
                 <select id="filter-city">
@@ -40,36 +66,12 @@
 
         <!-- MY ORDERS -->
         <section id="tab-orders" class="tab-panel" style="display: none;">
-            <div class="page-header">
-                <h2>My Orders</h2>
-                <p id="orders-summary">Your reservations and claim QR codes.</p>
-            </div>
+            <p class="results-count" id="orders-summary">Your reservations and claim QR codes.</p>
             <div id="orders-list" class="orders-list"><p class="empty">Loading your orders...</p></div>
         </section>
 
         <!-- MY POINTS -->
         <section id="tab-points" class="tab-panel" style="display: none;">
-            <div class="page-header">
-                <h2>My Points</h2>
-                <p>Earn points on every meal you collect, then redeem them for surplus food.</p>
-            </div>
-
-            <div class="points-card">
-                <div>
-                    <div class="points-total" id="points-available">0</div>
-                    <div class="points-label">Points available</div>
-                </div>
-                <div class="points-stat">
-                    <strong id="points-pending">0</strong>
-                    <span>Pending until you collect</span>
-                </div>
-                <div class="points-stat">
-                    <strong id="points-spent">0</strong>
-                    <span>Points redeemed</span>
-                </div>
-                <div class="points-rule" id="points-rule"></div>
-            </div>
-
             <div class="how-it-works" id="points-how"></div>
 
             <h3 class="section-title">Redeem your points</h3>
@@ -114,11 +116,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <!-- Consumer dashboard scripts (order matters: core first, main last) -->
-    <script src="js/consumer-core.js?v=3"></script>
-    <script src="js/consumer-samples.js?v=3"></script>
-    <script src="js/consumer-browse.js?v=3"></script>
-    <script src="js/consumer-orders.js?v=3"></script>
-    <script src="js/consumer-points.js?v=3"></script>
-    <script src="js/consumer-main.js?v=3"></script>
+    <script src="js/consumer-core.js?v=4"></script>
+    <script src="js/consumer-samples.js?v=4"></script>
+    <script src="js/consumer-browse.js?v=4"></script>
+    <script src="js/consumer-orders.js?v=4"></script>
+    <script src="js/consumer-points.js?v=4"></script>
+    <script src="js/consumer-main.js?v=4"></script>
 </body>
 </html>
