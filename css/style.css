@@ -537,7 +537,7 @@ select:focus {
 }
 
 .guest-page .footer { 
-    color: #bbe2c0; /* lighter text on green background */
+    color: #bbe2c0; 
 }
 
 /* ── 7. Responsive Breakpoints ───────────────────────────────────────────── */
