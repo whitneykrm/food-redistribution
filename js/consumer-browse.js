@@ -1,3 +1,14 @@
+function useSampleListings(message) {
+    if (typeof SAMPLE_LISTINGS === 'undefined' || SAMPLE_LISTINGS.length === 0) {
+        $('listings-grid').innerHTML = `<p class="empty">${escapeHtml(message)}</p>`;
+        return;
+    }
+    allListings = [...SAMPLE_LISTINGS];
+    populateCities();
+    renderListings();
+    renderRedeem();
+}
+
 async function loadListings() {
     const grid = $('listings-grid');
     try {
@@ -6,16 +17,17 @@ async function loadListings() {
         const data = await res.json();
 
         if (!data.success) {
-            grid.innerHTML = `<p class="empty">${escapeHtml(data.message || 'Failed to load listings.')}</p>`;
+            useSampleListings(data.message || 'Failed to load listings.');
             return;
         }
-        allListings = data.listings;
+        const samples = (typeof SAMPLE_LISTINGS !== 'undefined') ? SAMPLE_LISTINGS : [];
+        allListings = [...(data.listings || []), ...samples];
         populateCities();
         renderListings();
         renderRedeem();
     } catch (err) {
         console.error('Error loading listings:', err);
-        grid.innerHTML = '<p class="empty">Failed to load listings.</p>';
+        useSampleListings('Failed to load listings.');
     }
 }
 
@@ -69,19 +81,20 @@ function renderListings() {
                     <span class="price-was">KES ${money(l.original_price)}</span>
                     ${pct > 0 ? `<span class="badge-off">-${pct}%</span>` : ''}
                     ${l.points > 0 ? `<span class="badge-points">+${l.points} pts</span>` : ''}
+                    ${l.is_sample ? '<span class="badge-sample">Sample</span>' : ''}
                 </div>
                 <div class="meta">
                     <span>${l.quantity} left</span>
                     <span>Expires in ${timeLeft(l.expiry_time)}</span>
                 </div>
                 <div class="address">Pickup: ${escapeHtml(l.address)}</div>
-                <div class="redeem-hint">Or redeem for ${l.points_cost} pts</div>
-                <button type="button" class="btn-primary" data-action="reserve" data-id="${l.listings_id}">Reserve</button>
+                ${l.is_sample ? '' : `<div class="redeem-hint">Or redeem for ${l.points_cost} pts</div>`}
+                ${l.is_sample
+                    ? '<button type="button" class="btn-secondary" disabled title="Example listing, not available to reserve">Sample listing</button>'
+                    : `<button type="button" class="btn-primary" data-action="reserve" data-id="${l.listings_id}">Reserve</button>`}
             </article>`;
     }).join('');
 }
-
-// ── Reserve flow ───────────────────────────────────────────────
 function openReserveModal(listingId) {
     const listing = allListings.find(l => l.listings_id === listingId);
     if (!listing) return;
@@ -117,7 +130,7 @@ async function confirmReservation() {
         if (result.success) {
             showAlert('Reservation confirmed! Show your QR code when you collect.', true);
             await Promise.all([loadListings(), loadOrders()]);
-            switchTab('orders');
+            location.hash = 'orders';   // the hashchange listener in consumer-main.js switches the section
             const order = myOrders.find(o => o.order_id === result.order_id);
             if (order && order.points) showAlert(`Reservation confirmed! You'll earn ${order.points} points when you collect your order.`, true);
             if (order) openQrModal(order);

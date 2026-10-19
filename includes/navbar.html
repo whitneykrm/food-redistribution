@@ -12,6 +12,13 @@
         transition: background 0.2s ease;
     }
     .navbar .navbar-user a.btn-logout:hover { background-color: #bd2130; }
+    .navbar .navbar-user { display: flex; align-items: center; gap: 16px; }
+    .navbar .navbar-user .user-name {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--fc-dark, #333);
+        white-space: nowrap;
+    }
 </style>
 
 <header class="navbar-wrapper">
@@ -26,10 +33,14 @@
                 <span class="tagline">Good Food. Greater Impact.</span>
             </div>
         </a>
+
+        <!-- Dynamic Navigation Links -->
         <div class="navbar-links" id="navbar-links">
             <a href="index.html">Home</a>
             <a href="about.html">About</a>
         </div>
+
+        <!-- Dynamic Auth Action (Login / Logout only) -->
         <div class="navbar-user" id="navbar-user">
             <a href="login.html" id="auth-action-btn" class="btn-nav-login">Login</a>
         </div>
@@ -40,6 +51,15 @@
 (async function initNavbar() {
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
     const isActive = (page) => currentPage === page ? 'active' : '';
+
+    // Returns just the first name from whatever the session endpoint provides
+    const firstNameOf = (user) => {
+        const full = user.first_name || user.firstname || user.full_name || user.fullname
+                  || user.name || user.username || '';
+        return String(full).trim().split(/\s+/)[0];
+    };
+
+    // Highlight About on the static (pre-login-check) markup too
     document.querySelectorAll('#navbar-links a').forEach(a => {
         if (a.getAttribute('href') === currentPage) a.classList.add('active');
     });
@@ -53,6 +73,16 @@
 
         if (data.loggedIn && data.user) {
             const role = data.role || data.user.role || 'consumer';
+
+            // Show the user's first name to the left of the Logout button
+            const firstName = firstNameOf(data.user);
+            if (firstName && !document.getElementById('user-name')) {
+                const nameEl = document.createElement('span');
+                nameEl.id = 'user-name';
+                nameEl.className = 'user-name';
+                nameEl.textContent = firstName;
+                actionBtn.parentNode.insertBefore(nameEl, actionBtn);
+            }
 
             actionBtn.textContent = 'Logout';
             actionBtn.href = 'logout.php';
@@ -82,6 +112,8 @@
                     <a href="admin-dashboard.html" class="${isActive('admin-dashboard.html')}">Admin Dashboard</a>
                 `;
             } else {
+                // Consumer: Home, About, Browse Listings, My Orders, My Points.
+                // The three dashboard links switch sections using the URL hash.
                 const hashTab = () => (window.location.hash || '#browse').replace('#', '');
                 const activeTab = () => currentPage === 'consumer-dashboard.html' ? hashTab()
                                       : currentPage === 'checkout.html' ? 'browse' : '';
