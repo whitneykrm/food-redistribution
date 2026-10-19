@@ -19,33 +19,9 @@
 
         <!-- Shared header (always visible) -->
         <div class="page-header">
-            <h2>Find Surplus Food</h2>
-            <p>Reserve discounted food from verified local vendors, then collect it with your QR code.</p>
+            <h2 id="page-title">Find Surplus Food</h2>
+            <p id="page-subtitle">Reserve discounted food from verified local vendors, then collect it with your QR code.</p>
         </div>
-
-        <!-- Shared points card (always visible) -->
-        <div class="points-card">
-            <div>
-                <div class="points-total" id="points-available">0</div>
-                <div class="points-label">Points available</div>
-            </div>
-            <div class="points-stat">
-                <strong id="points-pending">0</strong>
-                <span>Pending until you collect</span>
-            </div>
-            <div class="points-stat">
-                <strong id="points-spent">0</strong>
-                <span>Points redeemed</span>
-            </div>
-            <div class="points-rule" id="points-rule"></div>
-        </div>
-
-        <!-- Tab bar -->
-        <nav class="tabs">
-            <button type="button" class="tab-btn active" data-tab="browse">Browse Listings</button>
-            <button type="button" class="tab-btn" data-tab="orders">My Orders</button>
-            <button type="button" class="tab-btn" data-tab="points">My Points</button>
-        </nav>
 
         <!-- BROWSE LISTINGS -->
         <section id="tab-browse" class="tab-panel">
@@ -72,6 +48,23 @@
 
         <!-- MY POINTS -->
         <section id="tab-points" class="tab-panel" style="display: none;">
+            <!-- Points card (My Points only) -->
+            <div class="points-card">
+                <div>
+                    <div class="points-total" id="points-available">0</div>
+                    <div class="points-label">Points available</div>
+                </div>
+                <div class="points-stat">
+                    <strong id="points-pending">0</strong>
+                    <span>Pending until you collect</span>
+                </div>
+                <div class="points-stat">
+                    <strong id="points-spent">0</strong>
+                    <span>Points redeemed</span>
+                </div>
+                <div class="points-rule" id="points-rule"></div>
+            </div>
+
             <div class="how-it-works" id="points-how"></div>
 
             <h3 class="section-title">Redeem your points</h3>
