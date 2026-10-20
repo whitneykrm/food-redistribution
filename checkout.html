@@ -55,7 +55,7 @@
         const $ = (id) => document.getElementById(id);
         const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
             ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-        const money = (n) => Number(n).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const money = (n) => Number(n).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
         function showError(message) {
             const el = $('checkout-error');
@@ -94,7 +94,6 @@
                 showProblem('No item was selected. Please pick one from the listings.');
                 return;
             }
-            // Sample listings live in the browser only, so they never go to the server
             if (String(listingId).startsWith('sample-')) {
                 listing = (typeof SAMPLE_LISTINGS !== 'undefined' ? SAMPLE_LISTINGS : [])
                     .find(l => l.listings_id === listingId);
@@ -138,8 +137,6 @@
                 showError('Enter a valid M-Pesa number, e.g. 0712345678.');
                 return;
             }
-
-            // Demo path for sample listings: make a local code, nothing is sent to the server
             if (listing.is_sample) {
                 const bytes = crypto.getRandomValues(new Uint8Array(16));
                 const code = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
@@ -171,7 +168,6 @@
                 const result = await res.json();
 
                 if (result.success) {
-                    // Remember what was just ordered so the next page can show it
                     sessionStorage.setItem('lastReservation', JSON.stringify({
                         order_id: result.order_id,
                         item_name: listing.item_name,
