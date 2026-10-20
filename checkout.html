@@ -3,182 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirm Reservation - Food Connect</title>
+    <title>Checkout - Food Connect</title>
     <link rel="icon" href="images/logo.svg" type="image/svg+xml">
     <link rel="icon" href="images/favicon.ico" sizes="any">
+    <!-- Main brand stylesheet first, then checkout styles -->
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/consumer-dashboard.css?v=4">
+    <link rel="stylesheet" href="css/checkout.css">
 </head>
 <body>
-
-    <!-- Dynamic Header/Nav Placeholder -->
     <div id="navbar-placeholder"></div>
-
-    <main class="container">
-        <div class="card">
-            <h2>Confirm Reservation</h2>
-            <p class="subtitle">Choose how you'll pay to generate your claim QR code</p>
-
-            <div id="alert-msg" class="flash" style="display: none; margin-bottom: 16px;"></div>
-            <div id="checkout-loading" class="empty">Loading your item...</div>
-
-            <div id="checkout-content" style="display: none;">
-                <div class="summary" id="order-summary"></div>
-
-                <form id="checkout-form" novalidate>
-                    <div class="form-group">
-                        <label for="payment_method">Payment Method</label>
-                        <select id="payment_method" name="payment_method" required>
-                            <option value="M-Pesa">M-Pesa Mobile Money</option>
-                            <option value="cash">Cash on Collection</option>
-                        </select>
-                    </div>
-                    <div class="form-group" id="mpesaGroup">
-                        <label for="phone">M-Pesa Phone Number</label>
-                        <input type="text" id="phone" name="phone" placeholder="07XXXXXXXX">
-                        <small class="error-text" id="phoneError"></small>
-                    </div>
-
-                    <p class="note">Your payment is recorded as pending and settled with the vendor when you collect your order. One reservation holds one portion.</p>
-
-                    <button type="submit" class="btn-submit" id="confirm-btn">Confirm Reservation</button>
-                </form>
-
-                <p class="footer-text"><a href="consumer-dashboard.html#browse">&larr; Back to listings</a></p>
-            </div>
+    <div class="card">
+        <h2>Confirm Order &amp; Pay</h2>
+        <p class="subtitle">Complete settlement to generate your claim QR Code</p>
+        <div class="order-summary" id="order-summary">
+            <p>Loading your order...</p>
         </div>
-    </main>
-    <div id="footer-placeholder"></div>
+
+        <p id="checkout-error" role="alert"
+           style="display: none; color: #b91c1c; font-size: 0.9rem; font-weight: 600; margin-bottom: 14px;"></p>
+
+        <form id="checkout-form" style="display: none;">
+            <div class="form-group">
+                <label for="payment_method">Payment Method</label>
+                <select id="payment_method" name="payment_method" required>
+                    <option value="M-Pesa">M-Pesa Mobile Money</option>
+                    <option value="Cash">Cash on Collection</option>
+                </select>
+            </div>
+            <div class="form-group" id="mpesaGroup">
+                <label for="phone">M-Pesa Phone Number</label>
+                <input type="text" id="phone" name="phone" placeholder="07XXXXXXXX" inputmode="tel" autocomplete="tel">
+            </div>
+
+            <button type="submit" class="btn-submit" id="submit-btn">Make Payment &amp; Reserve</button>
+        </form>
+
+        <p style="text-align: center; margin-top: 16px; font-size: 0.9rem;">
+            <a href="consumer-dashboard.html#browse">&larr; Back to listings</a>
+        </p>
+    </div>
 
     <script src="js/load-fragment.js"></script>
+    <script src="js/consumer-samples.js?v=4"></script>
     <script>
+        loadFragment('navbar-placeholder', 'includes/navbar.html');
+
+        const params = new URLSearchParams(window.location.search);
+        const listingId = params.get('listing');
         let listing = null;
-        let currentUser = null;
-        let alertTimer;
+
         const $ = (id) => document.getElementById(id);
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
+            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const money = (n) => Number(n).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-        function escapeHtml(str) {
-            return String(str ?? '')
-                .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-        }
-
-        function money(n) {
-            return Number(n).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-        function parseDate(s) {
-            return new Date(String(s).replace(' ', 'T'));
+        function showError(message) {
+            const el = $('checkout-error');
+            el.textContent = message;
+            el.style.display = 'block';
         }
 
-        function timeLeft(expiry) {
-            const mins = Math.floor((parseDate(expiry) - new Date()) / 60000);
-            if (mins <= 0) return 'now';
-            const d = Math.floor(mins / 1440);
-            const h = Math.floor((mins % 1440) / 60);
-            const m = mins % 60;
-            if (d > 0) return `${d}d ${h}h`;
-            if (h > 0) return `${h}h ${m}m`;
-            return `${m}m`;
+        function showProblem(message) {
+            $('order-summary').innerHTML = `<p>${esc(message)}</p>`;
+            $('checkout-form').style.display = 'none';
         }
 
-        function showAlert(message, isSuccess = true) {
-            const box = $('alert-msg');
-            box.className = 'flash ' + (isSuccess ? 'flash-success' : 'flash-error');
-            box.textContent = message;
-            box.style.display = 'block';
-            clearTimeout(alertTimer);
-            if (isSuccess) alertTimer = setTimeout(() => { box.style.display = 'none'; }, 6000);
-        }
-
-        async function checkConsumerAccess() {
-            try {
-                const res = await fetch('api/session-check.php');
-                const data = await res.json();
-                const role = data.role || (data.user && data.user.role);
-                if (data.loggedIn && role === 'consumer') {
-                    currentUser = data.user || data.data || null;
-                    return true;
-                }
-            } catch (err) {
-                console.error('Session check failed:', err);
-            }
-            window.location.href = 'login.html';
-            return false;
-        }
-        function showUnavailable(message) {
-            $('checkout-loading').innerHTML =
-                `${escapeHtml(message)}<br><a href="consumer-dashboard.html#browse">Back to listings</a>`;
-        }
-        async function findListing(id) {
-            if (String(id).startsWith('sample-')) {
-                const saved = JSON.parse(sessionStorage.getItem('sampleListing') || 'null');
-                return saved && saved.listings_id === id ? saved : null;
-            }
-
-            const res = await fetch('api/get-public-listings.php');
-            if (res.status === 401) { window.location.href = 'login.html'; return null; }
-            const data = await res.json();
-            return data.success ? (data.listings.find(l => l.listings_id === Number(id)) || null) : null;
-        }
-
-        function renderSummary() {
-            $('order-summary').innerHTML = `
-                ${listing.is_sample ? '<span class="badge-sample">Sample listing</span><br>' : ''}
-                <strong>${escapeHtml(listing.item_name)}</strong><br>
-                ${escapeHtml(listing.business_name)}, ${escapeHtml(listing.city)}<br>
-                Pickup: ${escapeHtml(listing.address)}<br>
-                Expires in ${timeLeft(listing.expiry_time)}<br>
-                Amount due: <strong>KES ${money(listing.discounted_price)}</strong>
-                ${listing.points > 0 ? `<br>You'll earn <strong>${listing.points} points</strong> when you collect` : ''}`;
-        }
         function toggleMpesaField() {
             const isMpesa = $('payment_method').value === 'M-Pesa';
             $('mpesaGroup').style.display = isMpesa ? 'block' : 'none';
-            if (!isMpesa) clearPhoneError();
+            if (isMpesa) {
+                $('phone').setAttribute('required', 'required');
+            } else {
+                $('phone').removeAttribute('required');
+                $('phone').value = '';
+            }
         }
 
-        function clearPhoneError() {
-            $('phoneError').textContent = '';
-            $('phoneError').style.display = 'none';
-            $('phone').classList.remove('input-error');
-        }
-        function isValidPhone(value) {
-            return /^(?:\+?254|0)[17]\d{8}$/.test(value.replace(/[\s-]/g, ''));
-        }
-        function validatePhone() {
-            if ($('payment_method').value !== 'M-Pesa') {
-                clearPhoneError();
-                return true;
-            }
-            if (!isValidPhone($('phone').value)) {
-                $('phoneError').textContent = 'Enter a valid Safaricom number, e.g. 07XXXXXXXX.';
-                $('phoneError').style.display = 'block';
-                $('phone').classList.add('input-error');
-                return false;
-            }
-            clearPhoneError();
-            return true;
-        }
-        function finishSample() {
-            $('confirm-btn').disabled = true;
-            showAlert('Sample reservation complete! Nothing was saved because this is a sample listing. ' +
-                      'Real listings from vendors are reserved the same way and give you a QR code.', true);
-            clearTimeout(alertTimer); // keep this message on screen
+        function showListing() {
+            $('order-summary').innerHTML = `
+                <p><strong>Item:</strong> ${esc(listing.item_name)}</p>
+                <p><strong>Vendor:</strong> ${esc(listing.business_name)}, ${esc(listing.city)}</p>
+                <p><strong>Pickup:</strong> ${esc(listing.address)}</p>
+                <p><strong>Amount Due:</strong> KES ${money(listing.discounted_price)}</p>`;
+            $('checkout-form').style.display = 'block';
+            toggleMpesaField();
         }
 
-        async function submitReservation(e) {
+        async function loadListing() {
+            if (!listingId) {
+                showProblem('No item was selected. Please pick one from the listings.');
+                return;
+            }
+            // Sample listings live in the browser only, so they never go to the server
+            if (String(listingId).startsWith('sample-')) {
+                listing = (typeof SAMPLE_LISTINGS !== 'undefined' ? SAMPLE_LISTINGS : [])
+                    .find(l => l.listings_id === listingId);
+                if (!listing) { showProblem('This sample listing is no longer available.'); return; }
+                showListing();
+                return;
+            }
+            try {
+                const res = await fetch('api/get-public-listings.php');
+                if (res.status === 401) { window.location.href = 'login.html'; return; }
+                const data = await res.json();
+
+                if (!data.success) {
+                    showProblem(data.message || 'Could not load this item.');
+                    return;
+                }
+                listing = (data.listings || []).find(l => String(l.listings_id) === String(listingId));
+                if (!listing) {
+                    showProblem('This item is no longer available.');
+                    return;
+                }
+
+                showListing();
+            } catch (err) {
+                console.error('Error loading listing:', err);
+                showProblem('Something went wrong loading your order. Please go back and try again.');
+            }
+        }
+
+        $('payment_method').addEventListener('change', toggleMpesaField);
+
+        $('checkout-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!listing || !validatePhone()) return;
+            if (!listing) return;
+            $('checkout-error').style.display = 'none';
 
-            if (listing.is_sample) {
-                finishSample();
+            const method = $('payment_method').value;
+            const phone = $('phone').value.trim();
+
+            if (method === 'M-Pesa' && !/^(?:\+?254|0)[17]\d{8}$/.test(phone)) {
+                showError('Enter a valid M-Pesa number, e.g. 0712345678.');
                 return;
             }
 
-            const btn = $('confirm-btn');
+            // Demo path for sample listings: make a local code, nothing is sent to the server
+            if (listing.is_sample) {
+                const bytes = crypto.getRandomValues(new Uint8Array(16));
+                const code = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+                sessionStorage.setItem('demoReservation', JSON.stringify({
+                    order_id: 'DEMO-' + Math.floor(100000 + Math.random() * 900000),
+                    qr_code: code,
+                    item_name: listing.item_name,
+                    payment_method: method
+                }));
+                window.location.href = 'consumer-qr.html?demo=1';
+                return;
+            }
+
+            const btn = $('submit-btn');
             btn.disabled = true;
             btn.textContent = 'Reserving...';
-            let done = false;
 
             try {
                 const res = await fetch('api/reserve-listing.php', {
@@ -186,66 +163,33 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         listing_id: listing.listings_id,
-                        payment_method: $('payment_method').value
+                        payment_method: method,
+                        phone: phone
                     })
                 });
                 if (res.status === 401) { window.location.href = 'login.html'; return; }
                 const result = await res.json();
 
                 if (result.success) {
-                    done = true;
-                    // The dashboard opens the QR code for this order
-                    window.location.href = `consumer-dashboard.html?order=${result.order_id}#orders`;
-                } else {
-                    showAlert(result.message || 'Could not reserve this item.', false);
+                    // Remember what was just ordered so the next page can show it
+                    sessionStorage.setItem('lastReservation', JSON.stringify({
+                        order_id: result.order_id,
+                        item_name: listing.item_name,
+                        payment_method: method
+                    }));
+                    window.location.href = 'consumer-qr.html?order_id=' + encodeURIComponent(result.order_id);
+                    return;
                 }
+                showError(result.message || 'Could not reserve this item.');
             } catch (err) {
                 console.error('Reservation failed:', err);
-                showAlert('An unexpected error occurred. Please try again.', false);
-            } finally {
-                if (!done) {
-                    btn.disabled = false;
-                    btn.textContent = 'Confirm Reservation';
-                }
+                showError('An unexpected error occurred. Please try again.');
             }
-        }
-        async function initCheckout() {
-            loadFragment('navbar-placeholder', 'includes/navbar.html');
-            loadFragment('footer-placeholder', 'includes/footer.html');
+            btn.disabled = false;
+            btn.textContent = 'Make Payment & Reserve';
+        });
 
-            if (!(await checkConsumerAccess())) return;
-
-            const id = new URLSearchParams(window.location.search).get('listing');
-            if (!id) {
-                showUnavailable('No item was selected.');
-                return;
-            }
-
-            try {
-                listing = await findListing(id);
-            } catch (err) {
-                console.error('Could not load the item:', err);
-                showUnavailable('Could not load this item. Please try again.');
-                return;
-            }
-
-            if (!listing) {
-                showUnavailable('Sorry, this item is no longer available.');
-                return;
-            }
-            if (currentUser && currentUser.phone) $('phone').value = currentUser.phone;
-
-            renderSummary();
-            $('checkout-loading').style.display = 'none';
-            $('checkout-content').style.display = 'block';
-            toggleMpesaField();
-        }
-
-        $('payment_method').addEventListener('change', toggleMpesaField);
-        $('phone').addEventListener('input', validatePhone);
-        $('checkout-form').addEventListener('submit', submitReservation);
-
-        initCheckout();
+        loadListing();
     </script>
 </body>
 </html>

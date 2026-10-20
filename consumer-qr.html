@@ -70,12 +70,26 @@
         (async function () {
             loadFragment('navbar-placeholder', 'includes/navbar.html');
 
+            const set = (id, text) => { document.getElementById(id).textContent = text; };
+            if (new URLSearchParams(window.location.search).get('demo')) {
+                let demo = null;
+                try { demo = JSON.parse(sessionStorage.getItem('demoReservation') || 'null'); } catch (e) { /* ignore */ }
+                if (demo) {
+                    new QRCode(document.getElementById('qr-slot'), { text: demo.qr_code, width: 200, height: 200 });
+                    document.getElementById('code-slot').textContent = demo.qr_code;
+                    set('d-ref', demo.order_id);
+                    set('d-item', demo.item_name);
+                    set('d-payment', demo.payment_method);
+                    set('d-status', 'Ready for Pickup');
+                    return;
+                }
+            }
+
             const orderId = Number(new URLSearchParams(window.location.search).get('order_id'));
             let saved = null;
             try { saved = JSON.parse(sessionStorage.getItem('lastReservation') || 'null'); } catch (e) { /* ignore */ }
             if (saved && Number(saved.order_id) !== orderId) saved = null;
 
-            const set = (id, text) => { document.getElementById(id).textContent = text; };
             const statusLabels = { reserved: 'Ready for Pickup', collected: 'Collected', cancelled: 'Cancelled' };
 
             try {

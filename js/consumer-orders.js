@@ -34,10 +34,12 @@ function pointsBadge(o) {
 
 function renderOrders() {
     const list = $('orders-list');
-    const badge = $('orders-count');
+    const badge = $('orders-count');   // optional: only exists if the page has an orders counter
     const activeCount = myOrders.filter(o => o.order_status === 'reserved').length;
-    badge.textContent = activeCount;
-    badge.style.display = activeCount > 0 ? 'inline-block' : 'none';
+    if (badge) {
+        badge.textContent = activeCount;
+        badge.style.display = activeCount > 0 ? 'inline-block' : 'none';
+    }
 
     if (myOrders.length === 0) {
         list.innerHTML = '<p class="empty">You have no reservations yet. Browse listings to reserve your first meal.</p>';

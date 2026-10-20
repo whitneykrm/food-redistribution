@@ -20,6 +20,8 @@ async function loadListings() {
             useSampleListings(data.message || 'Failed to load listings.');
             return;
         }
+
+        // Real listings first, then the samples
         const samples = (typeof SAMPLE_LISTINGS !== 'undefined') ? SAMPLE_LISTINGS : [];
         allListings = [...(data.listings || []), ...samples];
         populateCities();
@@ -89,61 +91,7 @@ function renderListings() {
                 </div>
                 <div class="address">Pickup: ${escapeHtml(l.address)}</div>
                 ${l.is_sample ? '' : `<div class="redeem-hint">Or redeem for ${l.points_cost} pts</div>`}
-                ${l.is_sample
-                    ? '<button type="button" class="btn-secondary" disabled title="Example listing, not available to reserve">Sample listing</button>'
-                    : `<button type="button" class="btn-primary" data-action="reserve" data-id="${l.listings_id}">Reserve</button>`}
+                <a href="checkout.html?listing=${encodeURIComponent(l.listings_id)}" class="btn-primary btn-link">Reserve &amp; Generate QR</a>
             </article>`;
     }).join('');
-}
-function openReserveModal(listingId) {
-    const listing = allListings.find(l => l.listings_id === listingId);
-    if (!listing) return;
-    reserveTarget = listing;
-
-    $('reserve-summary').innerHTML = `
-        <strong>${escapeHtml(listing.item_name)}</strong><br>
-        ${escapeHtml(listing.business_name)}, ${escapeHtml(listing.city)}<br>
-        Pickup: ${escapeHtml(listing.address)}<br>
-        Amount: <strong>KES ${money(listing.discounted_price)}</strong>`;
-    $('reserve-modal').classList.add('open');
-}
-
-async function confirmReservation() {
-    if (!reserveTarget) return;
-    const btn = $('reserve-confirm');
-    btn.disabled = true;
-    btn.textContent = 'Reserving...';
-
-    try {
-        const res = await fetch('api/reserve-listing.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                listing_id: reserveTarget.listings_id,
-                payment_method: $('payment-method').value
-            })
-        });
-        if (res.status === 401) { window.location.href = 'login.html'; return; }
-        const result = await res.json();
-        closeModals();
-
-        if (result.success) {
-            showAlert('Reservation confirmed! Show your QR code when you collect.', true);
-            await Promise.all([loadListings(), loadOrders()]);
-            location.hash = 'orders';   // the hashchange listener in consumer-main.js switches the section
-            const order = myOrders.find(o => o.order_id === result.order_id);
-            if (order && order.points) showAlert(`Reservation confirmed! You'll earn ${order.points} points when you collect your order.`, true);
-            if (order) openQrModal(order);
-        } else {
-            showAlert(result.message || 'Could not reserve this item.', false);
-            loadListings();
-        }
-    } catch (err) {
-        console.error('Reservation failed:', err);
-        closeModals();
-        showAlert('An unexpected error occurred. Please try again.', false);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Confirm Reservation';
-    }
 }
