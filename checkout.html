@@ -14,7 +14,7 @@
     <div id="navbar-placeholder"></div>
     <div class="card">
         <h2>Confirm Order &amp; Pay</h2>
-        <p class="subtitle">Complete settlement to generate your claim QR Code</p>
+        <p class="subtitle">Reserve your item and pay when you collect it</p>
         <div class="order-summary" id="order-summary">
             <p>Loading your order...</p>
         </div>
@@ -26,17 +26,14 @@
             <div class="form-group">
                 <label for="payment_method">Payment Method</label>
                 <select id="payment_method" name="payment_method" required>
-                    <option value="M-Pesa">M-Pesa Mobile Money</option>
+                    <option value="M-Pesa">M-Pesa on Collection</option>
                     <option value="Cash">Cash on Collection</option>
                 </select>
             </div>
 
-            <div class="form-group" id="mpesaGroup">
-                <label for="phone">M-Pesa Phone Number</label>
-                <input type="text" id="phone" name="phone" placeholder="07XXXXXXXX" inputmode="tel" autocomplete="tel">
-            </div>
+            <p class="note-collect" style="font-size:0.9rem;color:#6c757d;margin:0 0 16px;">No payment is taken now. You pay the vendor when you collect your order.</p>
 
-            <button type="submit" class="btn-submit" id="submit-btn">Make Payment &amp; Reserve</button>
+            <button type="submit" class="btn-submit" id="submit-btn">Confirm Reservation</button>
         </form>
 
         <p style="text-align: center; margin-top: 16px; font-size: 0.9rem;">
@@ -69,17 +66,6 @@
             $('checkout-form').style.display = 'none';
         }
 
-        function toggleMpesaField() {
-            const isMpesa = $('payment_method').value === 'M-Pesa';
-            $('mpesaGroup').style.display = isMpesa ? 'block' : 'none';
-            if (isMpesa) {
-                $('phone').setAttribute('required', 'required');
-            } else {
-                $('phone').removeAttribute('required');
-                $('phone').value = '';
-            }
-        }
-
         function showListing() {
             $('order-summary').innerHTML = `
                 <p><strong>Item:</strong> ${esc(listing.item_name)}</p>
@@ -87,7 +73,6 @@
                 <p><strong>Pickup:</strong> ${esc(listing.address)}</p>
                 <p><strong>Amount Due:</strong> KES ${money(listing.discounted_price)}</p>`;
             $('checkout-form').style.display = 'block';
-            toggleMpesaField();
         }
 
         async function loadListing() {
@@ -95,7 +80,6 @@
                 showProblem('No item was selected. Please pick one from the listings.');
                 return;
             }
-            // Sample listings live in the browser only, so they never go to the server
             if (String(listingId).startsWith('sample-')) {
                 listing = (typeof SAMPLE_LISTINGS !== 'undefined' ? SAMPLE_LISTINGS : [])
                     .find(l => l.listings_id === listingId);
@@ -125,22 +109,13 @@
             }
         }
 
-        $('payment_method').addEventListener('change', toggleMpesaField);
-
         $('checkout-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!listing) return;
             $('checkout-error').style.display = 'none';
 
             const method = $('payment_method').value;
-            const phone = $('phone').value.trim();
-
-            if (method === 'M-Pesa' && !/^(?:\+?254|0)[17]\d{8}$/.test(phone)) {
-                showError('Enter a valid M-Pesa number, e.g. 0712345678.');
-                return;
-            }
-
-            // Demo path for sample listings: make a local code, nothing is sent to the server
+            const methodLabel = method === 'Cash' ? 'Cash on Collection' : 'M-Pesa on Collection';
             if (listing.is_sample) {
                 const bytes = crypto.getRandomValues(new Uint8Array(16));
                 const code = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
@@ -148,7 +123,9 @@
                     order_id: 'DEMO-' + Math.floor(100000 + Math.random() * 900000),
                     qr_code: code,
                     item_name: listing.item_name,
-                    payment_method: method
+                    business_name: listing.business_name,
+                    city: listing.city,
+                    payment_method: methodLabel
                 }));
                 window.location.href = 'consumer-qr.html?demo=1';
                 return;
@@ -164,8 +141,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         listing_id: listing.listings_id,
-                        payment_method: method.toLowerCase().replace('-', ''),
-                        phone: phone
+                        // reserve-listing.php accepts exactly 'M-Pesa' or 'cash'
+                        payment_method: method === 'Cash' ? 'cash' : 'M-Pesa'
                     })
                 });
                 if (res.status === 401) { window.location.href = 'login.html'; return; }
@@ -175,7 +152,7 @@
                     sessionStorage.setItem('lastReservation', JSON.stringify({
                         order_id: result.order_id,
                         item_name: listing.item_name,
-                        payment_method: method
+                        payment_method: methodLabel
                     }));
                     window.location.href = 'consumer-qr.html?order_id=' + encodeURIComponent(result.order_id);
                     return;
@@ -186,7 +163,7 @@
                 showError('An unexpected error occurred. Please try again.');
             }
             btn.disabled = false;
-            btn.textContent = 'Make Payment & Reserve';
+            btn.textContent = 'Confirm Reservation';
         });
 
         loadListing();
