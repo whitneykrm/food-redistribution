@@ -30,6 +30,7 @@
                     <option value="Cash">Cash on Collection</option>
                 </select>
             </div>
+
             <div class="form-group" id="mpesaGroup">
                 <label for="phone">M-Pesa Phone Number</label>
                 <input type="text" id="phone" name="phone" placeholder="07XXXXXXXX" inputmode="tel" autocomplete="tel">
@@ -94,6 +95,7 @@
                 showProblem('No item was selected. Please pick one from the listings.');
                 return;
             }
+            // Sample listings live in the browser only, so they never go to the server
             if (String(listingId).startsWith('sample-')) {
                 listing = (typeof SAMPLE_LISTINGS !== 'undefined' ? SAMPLE_LISTINGS : [])
                     .find(l => l.listings_id === listingId);
@@ -137,6 +139,8 @@
                 showError('Enter a valid M-Pesa number, e.g. 0712345678.');
                 return;
             }
+
+            // Demo path for sample listings: make a local code, nothing is sent to the server
             if (listing.is_sample) {
                 const bytes = crypto.getRandomValues(new Uint8Array(16));
                 const code = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
@@ -160,7 +164,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         listing_id: listing.listings_id,
-                        payment_method: method,
+                        payment_method: method.toLowerCase().replace('-', ''),
                         phone: phone
                     })
                 });
