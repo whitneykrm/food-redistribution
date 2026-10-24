@@ -17,6 +17,28 @@
         .input-error {
             border: 1px solid #d32f2f !important;
         }
+        .password-wrap {
+            position: relative;
+        }
+        .password-wrap input {
+            width: 100%;
+            padding-right: 70px;
+            box-sizing: border-box;
+        }
+        .toggle-password {
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            padding: 4px 6px;
+            color: #2d6a4f;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .toggle-password:hover { text-decoration: underline; }
         .server-error {
             background-color: #fde8e8;
             color: #d32f2f;
@@ -45,17 +67,12 @@
 
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required placeholder="Enter your password">
+                    <div class="password-wrap">
+                        <input type="password" id="password" name="password" required placeholder="Enter your password">
+                        <button type="button" class="toggle-password" id="togglePassword"
+                                aria-label="Show password" aria-pressed="false">Show</button>
+                    </div>
                     <small class="error-text" id="passwordError"></small>
-                </div>
-
-                <div class="form-group">
-                    <label for="userRole">Log In As</label>
-                    <select id="userRole" name="userRole" required>
-                        <option value="consumer">Consumer</option>
-                        <option value="vendor">Vendor</option>
-                        <option value="admin">Admin</option>
-                    </select>
                 </div>
 
                 <button type="submit" class="btn-submit" id="submitBtn">Sign In</button>
@@ -140,6 +157,15 @@
             clearError(passwordInput, passwordError);
             return true;
         }
+        const togglePassword = document.getElementById('togglePassword');
+        togglePassword.addEventListener('click', () => {
+            const show = passwordInput.type === 'password';
+            passwordInput.type = show ? 'text' : 'password';
+            togglePassword.textContent = show ? 'Hide' : 'Show';
+            togglePassword.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+            togglePassword.setAttribute('aria-pressed', String(show));
+            passwordInput.focus();
+        });
 
         emailInput.addEventListener('input', () => {
             hideServerError();
@@ -165,8 +191,7 @@
 
             const payload = {
                 email: emailInput.value.trim(),
-                password: passwordInput.value,
-                userRole: document.getElementById('userRole').value
+                password: passwordInput.value
             };
 
             try {
@@ -179,7 +204,6 @@
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    // Redirect according to user role or API instruction
                     const defaultRedirect = data.data?.role === 'vendor' ? 'vendor-dashboard.html' :
                                            data.data?.role === 'admin' ? 'admin-dashboard.html' : 'consumer-dashboard.html';
                     
