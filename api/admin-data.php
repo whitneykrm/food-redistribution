@@ -37,9 +37,6 @@ try {
     }
     unset($u);
 
-    // Real transactions = payment, joined through orders back to the
-    // listing, the vendor's owner, and the consumer's owner.
-    // NOTE: table is `listings` (not `foodlistings`) in this database.
     $payments = $pdo->query(
         "SELECT l.item_name,
                 vu.firstname AS vendor_first, vu.lastname AS vendor_last,
@@ -52,6 +49,7 @@ try {
          JOIN users vu ON vu.user_id = v.user_id
          JOIN consumer c ON c.consumer_id = o.consumer_id
          JOIN users cu ON cu.user_id = c.user_id
+         WHERE o.order_status <> 'cancelled'
          ORDER BY p.payment_id DESC
          LIMIT 50"
     )->fetchAll(PDO::FETCH_ASSOC);
