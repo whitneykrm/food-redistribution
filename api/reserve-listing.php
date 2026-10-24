@@ -11,8 +11,6 @@ function respond(int $status, array $payload): void
     echo json_encode($payload);
     exit();
 }
-
-// Roll back any open transaction, then send a JSON error.
 function abort(PDO $pdo, int $status, string $message): void
 {
     if ($pdo->inTransaction()) {
@@ -33,7 +31,6 @@ $input         = json_decode(file_get_contents('php://input'), true);
 $listingId     = (int) ($input['listing_id'] ?? 0);
 $paymentMethod = $input['payment_method'] ?? '';
 
-// Values must match the payment.payment_method enum exactly.
 if ($listingId <= 0 || !in_array($paymentMethod, ['M-Pesa', 'cash'], true)) {
     respond(400, ['success' => false, 'message' => 'A valid listing and payment method are required.']);
 }

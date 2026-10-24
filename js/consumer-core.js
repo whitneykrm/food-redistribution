@@ -13,12 +13,9 @@ function escapeHtml(str) {
         .replace(/&/g, '&amp;').replace(/</g, '&lt;')
         .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
-
 function money(n) {
-    return Number(n).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return Number(n).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
-
-// MySQL gives "YYYY-MM-DD HH:MM:SS"; the T makes every browser parse it.
 function parseDate(s) {
     return new Date(String(s).replace(' ', 'T'));
 }
@@ -46,8 +43,6 @@ function showAlert(message, isSuccess = true) {
     clearTimeout(alertTimer);
     if (isSuccess) alertTimer = setTimeout(() => { box.style.display = 'none'; }, 6000);
 }
-
-// ── Access guard ───────────────────────────────────────────────
 async function checkConsumerAccess() {
     try {
         const res = await fetch('api/session-check.php');
@@ -64,23 +59,18 @@ async function checkConsumerAccess() {
         return false;
     }
 }
-
-// ── Tabs ───────────────────────────────────────────────────────
 function switchTab(name) {
     ['browse', 'orders', 'points'].forEach(tab => {
+        const panel = $('tab-' + tab);
         // '' removes the inline style so the CSS layout applies
-        $('tab-' + tab).style.display = tab === name ? '' : 'none';
+        if (panel) panel.style.display = tab === name ? '' : 'none';
     });
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tab === name);
     });
 }
-
-// ── Modals ─────────────────────────────────────────────────────
 function closeModals() {
-    $('reserve-modal').classList.remove('open');
-    $('redeem-modal').classList.remove('open');
-    $('qr-modal').classList.remove('open');
+    document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('open'));
     reserveTarget = null;
     redeemTarget = null;
 }

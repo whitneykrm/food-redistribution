@@ -29,22 +29,17 @@
     </style>
 </head>
 <body>
-
-    <!-- Inject Dynamic Navbar -->
     <div id="navbar-placeholder"></div>
 
-    <!-- MAIN LOGIN CARD -->
     <main class="container">
         <div class="card" style="margin: 40px auto; max-width: 450px;">
             <h2>Sign In</h2>
-
-            <!-- Server-side / API Error Display -->
             <div class="server-error" id="serverError" style="display: none;"></div>
 
             <form id="loginForm" novalidate>
                 <div class="form-group">
                     <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" value="" required placeholder="example@domain.com">
+                    <input type="email" id="email" name="email" value="" required placeholder=" ">
                     <small class="error-text" id="emailError"></small>
                 </div>
 
@@ -72,7 +67,6 @@
         </div>
     </main>
 
-    <!-- Inject Dynamic Footer -->
     <div id="footer-placeholder"></div>
 
     <script src="js/load-fragment.js"></script>
@@ -176,7 +170,6 @@
             };
 
             try {
-                // Direct call to PHP backend API
                 const response = await fetch('api/login.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

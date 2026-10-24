@@ -36,19 +36,24 @@ document.addEventListener('click', (e) => {
 $('filter-search').addEventListener('input', renderListings);
 $('filter-city').addEventListener('change', renderListings);
 $('filter-sort').addEventListener('change', renderListings);
+function closeAllModals() {
+    document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('open'));
+}
+
 function onClick(id, handler) {
     const el = $(id);
     if (el) el.addEventListener('click', handler);
 }
 onClick('reserve-confirm', () => { if (typeof confirmReservation === 'function') confirmReservation(); });
-onClick('reserve-cancel', closeModals);
+onClick('reserve-cancel', closeAllModals);
 onClick('redeem-confirm', confirmRedemption);
-onClick('redeem-cancel', closeModals);
-onClick('qr-close', closeModals);
+onClick('redeem-cancel', closeAllModals);
+onClick('qr-close', closeAllModals);
+
 document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
-    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModals(); });
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeAllModals(); });
 });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModals(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAllModals(); });
 (async () => {
     loadFragment('navbar-placeholder', 'includes/navbar.html');
     loadFragment('footer-placeholder', 'includes/footer.html');
@@ -57,7 +62,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal
     if (!allowed) return;
 
     renderPoints();
-    activateTab(location.hash.slice(1));   
+    activateTab(location.hash.slice(1));   // open the tab from the URL (defaults to browse)
     await Promise.all([loadListings(), loadOrders()]);
     setInterval(() => { renderListings(); renderRedeem(); }, 60000);
 })();
