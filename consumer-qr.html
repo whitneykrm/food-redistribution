@@ -75,7 +75,12 @@
                 let demo = null;
                 try { demo = JSON.parse(sessionStorage.getItem('demoReservation') || 'null'); } catch (e) { /* ignore */ }
                 if (demo) {
-                    new QRCode(document.getElementById('qr-slot'), { text: demo.qr_code, width: 200, height: 200 });
+                    new QRCode(document.getElementById('qr-slot'), {
+                        text: ['FOOD CONNECT', 'Order #' + demo.order_id, demo.item_name,
+                               demo.business_name + (demo.city ? ', ' + demo.city : ''),
+                               'Code: ' + demo.qr_code].join('\n'),
+                        width: 240, height: 240, correctLevel: QRCode.CorrectLevel.M
+                    });
                     document.getElementById('code-slot').textContent = demo.qr_code;
                     set('d-ref', demo.order_id);
                     set('d-item', demo.item_name);
@@ -98,6 +103,8 @@
                 await loadOrders();
                 const order = myOrders.find(o => Number(o.order_id) === orderId);
                 if (!order) throw new Error('Order not found');
+
+                // Draw the QR with the dashboard's own function, then move it onto this page
                 openQrModal(order);
                 document.getElementById('qr-modal').classList.remove('open');
                 document.getElementById('qr-slot').appendChild(document.getElementById('qr-box'));

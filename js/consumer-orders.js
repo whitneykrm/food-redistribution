@@ -80,8 +80,16 @@ function renderOrders() {
             </article>`;
     }).join('');
 }
+function buildQrText(order) {
+    return [
+        'FOOD CONNECT',
+        'Order #ORD-' + order.order_id,
+        order.item_name,
+        order.business_name + (order.city ? ', ' + order.city : ''),
+        'Code: ' + order.qr_code
+    ].join('\n');
+}
 
-// ── QR code ────────────────────────────────────────────────────
 function openQrModal(order) {
     $('qr-details').innerHTML =
         `Order #ORD-${order.order_id} &middot; ${escapeHtml(order.item_name)}<br>` +
@@ -90,13 +98,11 @@ function openQrModal(order) {
     const box = $('qr-box');
     box.innerHTML = '';
     if (typeof QRCode !== 'undefined') {
-        new QRCode(box, { text: order.qr_code, width: 200, height: 200 });
+        new QRCode(box, { text: buildQrText(order), width: 240, height: 240, correctLevel: QRCode.CorrectLevel.M });
     }
     $('qr-code-text').textContent = order.qr_code;
     $('qr-modal').classList.add('open');
 }
-
-// ── Cancel ─────────────────────────────────────────────────────
 async function cancelOrder(orderId) {
     if (!confirm('Cancel this reservation? Any points used on it are refunded.')) return;
     try {
