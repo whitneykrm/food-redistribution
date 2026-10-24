@@ -3,9 +3,6 @@ header('Content-Type: application/json');
 header('X-Content-Type-Options: nosniff');
 
 session_start();
-
-// This file lives at api/login.php — one level below the project root — so
-// '../includes/db.php' correctly resolves to <root>/includes/db.php.
 $dbPath = __DIR__ . '/../includes/db.php';
 if (!file_exists($dbPath)) {
     http_response_code(500);
@@ -22,7 +19,6 @@ $input = json_decode(file_get_contents('php://input'), true);
 
 $email    = filter_var(trim($input['email'] ?? ''), FILTER_VALIDATE_EMAIL);
 $password = $input['password'] ?? '';
-$userRole = strtolower(trim($input['userRole'] ?? ''));
 
 if (!$email || empty($password)) {
     http_response_code(400);
@@ -31,7 +27,6 @@ if (!$email || empty($password)) {
 }
 
 try {
-    // 1. Query user by email directly
     $stmt = $pdo->prepare("SELECT user_id, firstname, lastname, email, password, role FROM users WHERE email = :email LIMIT 1");
     $stmt->execute(['email' => $email]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -41,14 +36,7 @@ try {
 
         $storedRole = strtolower($user['role']);
 
-        // Optional role lock verification
-        if (!empty($userRole) && $storedRole !== $userRole) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Account role does not match selected role.']);
-            exit();
-        }
-
-        // 3. Set session parameters
+        session_regenerate_id(true);
         $_SESSION['user_id']   = $user['user_id'];
         $_SESSION['firstname'] = $user['firstname'];
         $_SESSION['lastname']  = $user['lastname'];
@@ -56,17 +44,14 @@ try {
         $_SESSION['email']     = $user['email'];
         $_SESSION['role']      = $storedRole;
 
-        // 4. Dynamic redirection logic
         $redirectUrl = 'consumer-dashboard.html';
 
         if ($storedRole === 'vendor') {
-            // vendor.business_name lives in its own table, keyed by user_id —
-            // NOT a column on users.
+        
             $vStmt = $pdo->prepare("SELECT business_name FROM vendor WHERE user_id = :user_id LIMIT 1");
             $vStmt->execute(['user_id' => $user['user_id']]);
             $vendor = $vStmt->fetch(PDO::FETCH_ASSOC);
 
-            // Send to onboarding setup if missing business details, else go to dashboard
             $redirectUrl = (empty($vendor) || empty($vendor['business_name']))
                 ? 'vendor-details.html'
                 : 'vendor-dashboard.html';
@@ -94,9 +79,6 @@ try {
     echo json_encode([
         'success' => false,
         'message' => 'Database error occurred.',
-        // TEMPORARY — remove this "debug" key once things work. It leaks
-        // real database structure/error info, which is fine on your own
-        // machine while debugging but not once this is ever public.
         'debug'   => $e->getMessage(),
     ]);
 }
