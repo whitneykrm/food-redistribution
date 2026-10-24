@@ -8,6 +8,10 @@
   <style>
     .error-text { color: #d32f2f; font-size: 0.85rem; margin-top: 4px; display: none; }
     .input-error { border: 1px solid #d32f2f !important; }
+    .password-wrap { position: relative; }
+    .password-wrap input { width: 100%; padding-right: 70px; box-sizing: border-box; }
+    .toggle-password { position: absolute; top: 50%; right: 10px; transform: translateY(-50%); background: none; border: none; padding: 4px 6px; color: #2d6a4f; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+    .toggle-password:hover { text-decoration: underline; }
     .server-error { background-color: #fde8e8; color: #d32f2f; padding: 10px 14px; border-radius: 6px; border: 1px solid #f8b4b4; margin-bottom: 16px; font-size: 0.9rem; display: none; }
   </style>
 </head>
@@ -38,14 +42,26 @@
 
       <div class="form-group">
         <label for="email">Email Address</label>
-        <input type="email" id="email" name="email" required placeholder="example@domain.com">
+        <input type="email" id="email" name="email" required placeholder="">
         <small class="error-text" id="emailError"></small>
       </div>
 
       <div class="form-group">
         <label for="password">Password</label>
-        <input type="password" id="password" name="password" placeholder="Create a strong password" required>
+        <div class="password-wrap">
+          <input type="password" id="password" name="password" placeholder="Create a strong password" required>
+          <button type="button" class="toggle-password" data-target="password" aria-label="Show password" aria-pressed="false">Show</button>
+        </div>
         <small class="error-text" id="passwordError"></small>
+      </div>
+
+      <div class="form-group">
+        <label for="confirm_password">Confirm Password</label>
+        <div class="password-wrap">
+          <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter your password" required>
+          <button type="button" class="toggle-password" data-target="confirm_password" aria-label="Show password" aria-pressed="false">Show</button>
+        </div>
+        <small class="error-text" id="confirmPasswordError"></small>
       </div>
 
       <div class="form-group">
@@ -70,6 +86,8 @@
     const registerForm = document.getElementById('registerForm');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
+    const confirmInput = document.getElementById('confirm_password');
+    const confirmError = document.getElementById('confirmPasswordError');
     const roleSelect = document.getElementById('role');
     const submitBtn = document.getElementById('submitBtn');
 
@@ -142,6 +160,30 @@
       return true;
     }
 
+    function validateConfirm() {
+      if (confirmInput.value.length === 0) {
+        showError(confirmInput, confirmError, 'Please confirm your password.');
+        return false;
+      }
+      if (confirmInput.value !== passwordInput.value) {
+        showError(confirmInput, confirmError, 'Passwords do not match.');
+        return false;
+      }
+      clearError(confirmInput, confirmError);
+      return true;
+    }
+
+    document.querySelectorAll('.toggle-password').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = document.getElementById(btn.dataset.target);
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        btn.textContent = show ? 'Hide' : 'Show';
+        btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+        btn.setAttribute('aria-pressed', String(show));
+      });
+    });
+
     emailInput.addEventListener('input', () => {
       hideServerError();
       validateEmail();
@@ -149,6 +191,11 @@
     passwordInput.addEventListener('input', () => {
       hideServerError();
       validatePassword();
+      if (confirmInput.value.length > 0) validateConfirm();
+    });
+    confirmInput.addEventListener('input', () => {
+      hideServerError();
+      validateConfirm();
     });
 
     registerForm.addEventListener('submit', async function(e) {
@@ -157,6 +204,7 @@
 
       const isEmailValid = validateEmail();
       const isPasswordValid = validatePassword();
+      const isConfirmValid = validateConfirm();
 
       if (!roleSelect.value) {
         showError(roleSelect, roleError, 'Please select a role.');
@@ -165,7 +213,7 @@
         clearError(roleSelect, roleError);
       }
 
-      if (!isEmailValid || !isPasswordValid) return;
+      if (!isEmailValid || !isPasswordValid || !isConfirmValid) return;
 
       submitBtn.disabled = true;
       submitBtn.textContent = 'Creating Account...';
@@ -176,11 +224,12 @@
         phone_number: document.getElementById('phone_number').value.trim(),
         email: emailInput.value.trim().toLowerCase(),
         password: passwordInput.value,
+        confirm_password: confirmInput.value,
         role: roleSelect.value
       };
 
       try {
-        // Updated to target PHP endpoint directly
+      
         const response = await fetch('api/register.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
