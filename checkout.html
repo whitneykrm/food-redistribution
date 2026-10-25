@@ -6,12 +6,13 @@
     <title>Checkout - Food Connect</title>
     <link rel="icon" href="images/logo.svg" type="image/svg+xml">
     <link rel="icon" href="images/favicon.ico" sizes="any">
-    <!-- Main brand stylesheet first, then checkout styles -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/checkout.css">
 </head>
 <body>
     <div id="navbar-placeholder"></div>
+
+    <!-- CHECKOUT FORM CONTAINER -->
     <div class="card">
         <h2>Confirm Order &amp; Pay</h2>
         <p class="subtitle">Reserve your item and pay when you collect it</p>
@@ -68,9 +69,10 @@
 
         function showListing() {
             $('order-summary').innerHTML = `
+                ${listing.image_path ? `<img src="${esc(listing.image_path)}" alt="${esc(listing.item_name)}" onerror="this.style.display='none'" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin-bottom:12px;">` : ''}
                 <p><strong>Item:</strong> ${esc(listing.item_name)}</p>
-                <p><strong>Vendor:</strong> ${esc(listing.business_name)}, ${esc(listing.city)}</p>
-                <p><strong>Pickup:</strong> ${esc(listing.address)}</p>
+                <p><strong>Vendor:</strong> ${esc(listing.vendor_name || listing.business_name)}</p>
+                <p><strong>Pickup:</strong> ${esc(listing.business_name)}, ${esc(listing.address)}</p>
                 <p><strong>Amount Due:</strong> KES ${money(listing.discounted_price)}</p>`;
             $('checkout-form').style.display = 'block';
         }
@@ -80,6 +82,7 @@
                 showProblem('No item was selected. Please pick one from the listings.');
                 return;
             }
+            // Sample listings live in the browser only, so they never go to the server
             if (String(listingId).startsWith('sample-')) {
                 listing = (typeof SAMPLE_LISTINGS !== 'undefined' ? SAMPLE_LISTINGS : [])
                     .find(l => l.listings_id === listingId);
@@ -115,7 +118,9 @@
             $('checkout-error').style.display = 'none';
 
             const method = $('payment_method').value;
+            // Wording shown on the confirmation page
             const methodLabel = method === 'Cash' ? 'Cash on Collection' : 'M-Pesa on Collection';
+
             if (listing.is_sample) {
                 const bytes = crypto.getRandomValues(new Uint8Array(16));
                 const code = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
@@ -133,6 +138,22 @@
 
             const btn = $('submit-btn');
             btn.disabled = true;
+            btn.textContent = 'Checking your location...';
+
+            // The server checks you are close enough to the vendor, so send the current position
+            let position;
+            try {
+                position = await new Promise((resolve, reject) => {
+                    if (!navigator.geolocation) { reject(new Error('unsupported')); return; }
+                    navigator.geolocation.getCurrentPosition(resolve, reject,
+                        { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 });
+                });
+            } catch (geoErr) {
+                showError('We need your location to confirm you are near the vendor. Please allow location access in your browser and try again.');
+                btn.disabled = false;
+                btn.textContent = 'Confirm Reservation';
+                return;
+            }
             btn.textContent = 'Reserving...';
 
             try {
@@ -141,14 +162,16 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         listing_id: listing.listings_id,
-                        // reserve-listing.php accepts exactly 'M-Pesa' or 'cash'
-                        payment_method: method === 'Cash' ? 'cash' : 'M-Pesa'
+                        payment_method: method === 'Cash' ? 'cash' : 'M-Pesa',
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
                     })
                 });
                 if (res.status === 401) { window.location.href = 'login.html'; return; }
                 const result = await res.json();
 
                 if (result.success) {
+                    
                     sessionStorage.setItem('lastReservation', JSON.stringify({
                         order_id: result.order_id,
                         item_name: listing.item_name,

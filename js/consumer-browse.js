@@ -1,3 +1,36 @@
+let userLocation = null;           // { lat, lng } once the browser shares it
+let locationState = 'unknown';     // 'unknown' | 'asking' | 'granted' | 'denied'
+let reserveRadiusKm = 5;           
+
+function distanceKm(lat1, lon1, lat2, lon2) {
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+function listingDistance(l) {
+    if (!userLocation || l.latitude == null || l.longitude == null) return null;
+    return distanceKm(userLocation.lat, userLocation.lng, Number(l.latitude), Number(l.longitude));
+}
+
+function requestLocation() {
+    if (!navigator.geolocation) { locationState = 'denied'; renderListings(); return; }
+    locationState = 'asking';
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            locationState = 'granted';
+            renderListings();
+        },
+        () => { locationState = 'denied'; renderListings(); },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+    );
+}
+
+function formatKm(km) {
+    return km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km';
+}
 function useSampleListings(message) {
     if (typeof SAMPLE_LISTINGS === 'undefined' || SAMPLE_LISTINGS.length === 0) {
         $('listings-grid').innerHTML = `<p class="empty">${escapeHtml(message)}</p>`;
@@ -23,6 +56,7 @@ async function loadListings() {
 
         // Real listings first, then the samples
         const samples = (typeof SAMPLE_LISTINGS !== 'undefined') ? SAMPLE_LISTINGS : [];
+        reserveRadiusKm = data.reserve_radius_km || reserveRadiusKm;
         allListings = [...(data.listings || []), ...samples];
         populateCities();
         renderListings();
@@ -59,6 +93,13 @@ function renderListings() {
     items.sort((a, b) => {
         if (sort === 'price') return a.discounted_price - b.discounted_price;
         if (sort === 'discount') return discountPercent(b) - discountPercent(a);
+        if (sort === 'nearest') {
+            const da = listingDistance(a), db = listingDistance(b);
+            if (da === null && db === null) return parseDate(a.expiry_time) - parseDate(b.expiry_time);
+            if (da === null) return 1;
+            if (db === null) return -1;
+            return da - db;
+        }
         return parseDate(a.expiry_time) - parseDate(b.expiry_time);
     });
 
@@ -71,8 +112,25 @@ function renderListings() {
 
     grid.innerHTML = items.map(l => {
         const pct = discountPercent(l);
+        const dist = listingDistance(l);
+        const needsFence = !l.is_sample && l.latitude != null && l.longitude != null;
+
+        let action;
+        if (!needsFence) {
+            action = `<a href="checkout.html?listing=${encodeURIComponent(l.listings_id)}" class="btn-primary btn-link">Reserve &amp; Generate QR</a>`;
+        } else if (locationState !== 'granted') {
+            action = `<button type="button" class="btn-primary btn-locate-me" data-action="locate">${locationState === 'asking' ? 'Getting your location...' : 'Share location to reserve'}</button>`;
+        } else if (dist > reserveRadiusKm) {
+            action = `<button type="button" class="btn-primary btn-too-far" disabled>Too far to reserve</button>`;
+        } else {
+            action = `<a href="checkout.html?listing=${encodeURIComponent(l.listings_id)}" class="btn-primary btn-link">Reserve &amp; Generate QR</a>`;
+        }
+
         return `
             <article class="food-card">
+                ${l.image_path
+                    ? `<img class="food-img" src="${escapeHtml(l.image_path)}" alt="${escapeHtml(l.item_name)}" loading="lazy" onerror="this.outerHTML='<div class=&quot;food-img food-img-empty&quot; aria-hidden=&quot;true&quot;>🍽️</div>'">`
+                    : `<div class="food-img food-img-empty" aria-hidden="true">🍽️</div>`}
                 <div class="vendor-line">
                     <strong>${escapeHtml(l.business_name)}</strong>
                     <span>${escapeHtml(l.city)}</span>
@@ -90,8 +148,26 @@ function renderListings() {
                     <span>Expires in ${timeLeft(l.expiry_time)}</span>
                 </div>
                 <div class="address">Pickup: ${escapeHtml(l.address)}</div>
+                ${dist !== null ? `<div class="distance ${needsFence && dist > reserveRadiusKm ? 'far' : 'near'}">${formatKm(dist)} away${needsFence && dist > reserveRadiusKm ? ` (reserve within ${reserveRadiusKm} km)` : ''}</div>` : ''}
                 ${l.is_sample ? '' : `<div class="redeem-hint">Or redeem for ${l.points_cost} pts</div>`}
-                <a href="checkout.html?listing=${encodeURIComponent(l.listings_id)}" class="btn-primary btn-link">Reserve &amp; Generate QR</a>
+                ${action}
             </article>`;
     }).join('');
 }
+
+
+// "Share location to reserve" button on a card
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action="locate"]');
+    if (btn) requestLocation();
+});
+
+window.addEventListener('load', () => {
+    if (navigator.geolocation && navigator.permissions && navigator.permissions.query) {
+        // Only prompt automatically if the person already allowed it; otherwise wait for the button
+        navigator.permissions.query({ name: 'geolocation' }).then(p => {
+            if (p.state === 'granted') requestLocation();
+            else if (p.state === 'denied') { locationState = 'denied'; }
+        }).catch(() => {});
+    }
+});
