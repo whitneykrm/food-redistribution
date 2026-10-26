@@ -2,13 +2,14 @@
 header('Content-Type: application/json');
 session_start();
 require_once '../includes/db.php';
+require_once '../includes/upload-image.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'vendor') {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
 }
 
-$data = json_decode(file_get_contents('php://input'), true);
+$data = !empty($_POST) ? $_POST : (json_decode(file_get_contents('php://input'), true) ?: []);
 
 if (empty($data['listing_id']) || empty($data['item_name']) || empty($data['category'])
     || empty($data['quantity']) || !isset($data['original_price']) || !isset($data['discounted_price'])
@@ -54,13 +55,37 @@ try {
         echo json_encode(['success' => false, 'message' => 'Your business is pending verification.']);
         exit;
     }
+
+    // The listing must belong to this vendor
+    $stmt = $pdo->prepare("SELECT image_path FROM listings WHERE listings_id = ? AND vendor_id = ?");
+    $stmt->execute([(int) $data['listing_id'], $vendor['vendor_id']]);
+    $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$existing) {
+        echo json_encode(['success' => false, 'message' => 'Listing not found.']);
+        exit;
+    }
+    $oldImage = $existing['image_path'];
+    $newImage = $oldImage;
+
+    if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE) {
+        [$ok, $result] = saveListingImage($_FILES['image']);
+        if (!$ok) {
+            echo json_encode(['success' => false, 'message' => $result]);
+            exit;
+        }
+        $newImage = $result;                       // replace the photo
+    } elseif (!empty($data['remove_image'])) {
+        $newImage = null;                          // remove the photo
+    }
+
     $stmt = $pdo->prepare("UPDATE listings
-                           SET item_name = ?, category = ?, quantity = ?,
+                           SET item_name = ?, category = ?, image_path = ?, quantity = ?,
                                original_price = ?, discounted_price = ?, expiry_time = ?
                            WHERE listings_id = ? AND vendor_id = ?");
     $stmt->execute([
         $data['item_name'],
         $category,
+        $newImage,
         $quantity,
         $original,
         $discounted,
@@ -68,13 +93,8 @@ try {
         (int) $data['listing_id'],
         $vendor['vendor_id']
     ]);
-    if ($stmt->rowCount() === 0) {
-        $check = $pdo->prepare("SELECT 1 FROM listings WHERE listings_id = ? AND vendor_id = ?");
-        $check->execute([(int) $data['listing_id'], $vendor['vendor_id']]);
-        if (!$check->fetchColumn()) {
-            echo json_encode(['success' => false, 'message' => 'Listing not found.']);
-            exit;
-        }
+    if ($oldImage && $oldImage !== $newImage) {
+        deleteListingImage($oldImage);
     }
 
     echo json_encode(['success' => true, 'message' => 'Listing updated successfully']);
