@@ -5,7 +5,6 @@ function inHours(hours) {
     const pad = (n) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
 }
-
 function makeSample(id, business, city, address, item, quantity, original, discounted, hours, image, lat, lng) {
     return {
         listings_id: 'sample-' + id,
