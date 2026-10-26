@@ -4,6 +4,7 @@ header('X-Content-Type-Options: nosniff');
 
 session_start();
 require_once '../includes/db.php';
+require_once '../includes/geofence.php';
 
 // Authentication guard
 if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'vendor') {
@@ -17,11 +18,14 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
     try {
-        // NOTE: table is `vendor` (singular) — this was the bug causing a
-        // "table doesn't exist" error on this endpoint.
-        $stmt = $pdo->prepare("SELECT vendor_id, business_name, city, address, verification_status FROM vendor WHERE user_id = :user_id LIMIT 1");
+        $stmt = $pdo->prepare("SELECT vendor_id, business_name, city, address, latitude, longitude, verification_status FROM vendor WHERE user_id = :user_id LIMIT 1");
         $stmt->execute(['user_id' => $userId]);
         $vendor = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($vendor) {
+            $vendor['latitude']  = $vendor['latitude']  !== null ? (float) $vendor['latitude']  : null;
+            $vendor['longitude'] = $vendor['longitude'] !== null ? (float) $vendor['longitude'] : null;
+        }
 
         echo json_encode([
             'success' => true,
@@ -41,6 +45,8 @@ if ($method === 'POST') {
     $businessName = trim($input['business_name'] ?? '');
     $city         = trim($input['city'] ?? '');
     $address      = trim($input['address'] ?? '');
+    $latitude     = $input['latitude'] ?? null;
+    $longitude    = $input['longitude'] ?? null;
 
     if ($businessName === '' || $city === '' || $address === '') {
         http_response_code(400);
@@ -48,36 +54,46 @@ if ($method === 'POST') {
         exit();
     }
 
+    // The shop's pin on the map is what the distance rule uses
+    if (!validCoordinates($latitude, $longitude)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Please mark your shop location on the map.']);
+        exit();
+    }
+    $latitude  = round((float) $latitude, 6);
+    $longitude = round((float) $longitude, 6);
+
     try {
-        // Check for an existing row first rather than relying on
-        // ON DUPLICATE KEY UPDATE, since user_id may only be a foreign-key
-        // index and not guaranteed UNIQUE — relying on it could silently
-        // insert duplicate vendor rows instead of updating the real one.
         $lookup = $pdo->prepare('SELECT vendor_id FROM vendor WHERE user_id = :user_id LIMIT 1');
         $lookup->execute(['user_id' => $userId]);
         $existing = $lookup->fetch(PDO::FETCH_ASSOC);
 
         if ($existing) {
             $update = $pdo->prepare(
-                'UPDATE vendor SET business_name = :business_name, city = :city, address = :address
+                'UPDATE vendor SET business_name = :business_name, city = :city, address = :address,
+                                   latitude = :latitude, longitude = :longitude
                  WHERE vendor_id = :vendor_id'
             );
             $update->execute([
                 'business_name' => $businessName,
                 'city'          => $city,
                 'address'       => $address,
+                'latitude'      => $latitude,
+                'longitude'     => $longitude,
                 'vendor_id'     => $existing['vendor_id'],
             ]);
         } else {
             $insert = $pdo->prepare(
-                "INSERT INTO vendor (user_id, business_name, city, address, verification_status)
-                 VALUES (:user_id, :business_name, :city, :address, 'pending')"
+                "INSERT INTO vendor (user_id, business_name, city, address, latitude, longitude, verification_status)
+                 VALUES (:user_id, :business_name, :city, :address, :latitude, :longitude, 'pending')"
             );
             $insert->execute([
                 'user_id'       => $userId,
                 'business_name' => $businessName,
                 'city'          => $city,
                 'address'       => $address,
+                'latitude'      => $latitude,
+                'longitude'     => $longitude,
             ]);
         }
 

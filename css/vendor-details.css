@@ -1,0 +1,28 @@
+
+.profile-details { margin: 0 0 20px; }
+.profile-details dt { font-size: .85rem; color: var(--grey); margin-top: 14px; }
+.profile-details dd { margin: 4px 0 0; font-size: 1.05rem; font-weight: 600; }
+
+/* Verification badge */
+.status-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .85rem; }
+.status-badge.verified { background: #d4edda; color: #155724; }
+.status-badge.pending  { background: #fff3cd; color: #856404; }
+
+/* Shop location: place search */
+.map-search { display: flex; gap: 8px; }
+.map-search input { flex: 1; min-width: 0; }
+.btn-search { background: #285da7; color: #fff; border: none; border-radius: 6px; padding: 0 16px; font-weight: 600; cursor: pointer; }
+.btn-search:hover { background: #1f4b88; }
+.search-results { list-style: none; margin: 6px 0 0; padding: 0; border: 1px solid #ced4da; border-radius: 6px; overflow: hidden; display: none; }
+.search-results li { padding: 9px 12px; font-size: 0.9rem; cursor: pointer; border-bottom: 1px solid #eee; }
+.search-results li:last-child { border-bottom: none; }
+.search-results li:hover { background: #eef3fb; }
+.search-results li.none { cursor: default; color: #6c757d; }
+
+/* Shop location: map and controls */
+#location-map { height: 260px; border-radius: 8px; border: 1px solid #ced4da; margin-top: 6px; }
+.map-actions { display: flex; gap: 10px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.btn-locate { background: #fff; color: #285da7; border: 1px solid #285da7; border-radius: 6px; padding: 8px 14px; font-weight: 600; cursor: pointer; }
+.btn-locate:hover { background: #eef3fb; }
+.map-status { font-size: 0.85rem; font-weight: 600; color: #155724; }
+.map-hint { font-size: 0.85rem; color: #6c757d; margin-top: 6px; }

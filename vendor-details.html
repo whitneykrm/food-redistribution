@@ -7,30 +7,18 @@
     <link rel="icon" href="images/logo.svg" type="image/svg+xml">
     <link rel="icon" href="images/favicon.ico" sizes="any">
     <link rel="stylesheet" href="css/style.css">
-    <style>
-        .profile-details { margin: 0 0 20px; }
-        .profile-details dt { font-size: .85rem; color: var(--grey); margin-top: 14px; }
-        .profile-details dd { margin: 4px 0 0; font-size: 1.05rem; font-weight: 600; }
-        .status-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .85rem; }
-        .status-badge.verified { background: #d4edda; color: #155724; }
-        .status-badge.pending  { background: #fff3cd; color: #856404; }
-    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <link rel="stylesheet" href="css/vendor-details.css">
 </head>
 <body>
-
-    <!-- Dynamic Header/Nav Placeholder -->
     <div id="navbar-placeholder"></div>
-
-    <!-- REGISTRATION CARD CONTAINER -->
     <main class="container">
         <div class="card" style="margin: 40px auto; max-width: 500px;">
             <h2>Vendor Profile</h2>
             <p class="subtitle" id="page-subtitle">Complete your business and location details</p>
 
-            <!-- Alert Banner for Feedback -->
             <div id="alert-msg" style="display: none; padding: 10px; margin-bottom: 15px; border-radius: 4px;"></div>
 
-            <!-- Read-only view, shown once the vendor has a saved profile -->
             <div id="profile-view" style="display: none;">
                 <dl class="profile-details">
                     <dt>Business Name</dt>
@@ -44,6 +32,9 @@
 
                     <dt>Location / Address</dt>
                     <dd id="view-address"></dd>
+
+                    <dt>Map Location</dt>
+                    <dd id="view-pin"></dd>
                 </dl>
 
                 <button type="button" class="btn-submit" id="edit-btn">Edit Details</button>
@@ -70,15 +61,29 @@
                     <input type="text" id="address" name="address" placeholder="e.g. 123 Commercial Street, Kilimani" required>
                 </div>
 
+                <div class="form-group">
+                    <label for="place-search">Shop Location on Map</label>
+                    <div class="map-search">
+                        <input type="text" id="place-search" placeholder="Search for a place, e.g. Lavington Mall" autocomplete="off">
+                        <button type="button" class="btn-search" id="search-btn">Search</button>
+                    </div>
+                    <ul class="search-results" id="search-results"></ul>
+                    <div id="location-map" style="margin-top: 8px;"></div>
+                    <div class="map-actions">
+                        <button type="button" class="btn-locate" id="locate-btn">Use my current location</button>
+                        <span class="map-status" id="map-status"></span>
+                    </div>
+                    <div class="map-hint">Search for your shop or click the map to place the pin, and drag it to adjust. Consumers can only reserve when they are close to this spot.</div>
+                </div>
+
                 <button type="submit" class="btn-submit" id="submit-btn">Complete Registration</button>
                 <button type="button" class="button button-light" id="cancel-btn" style="display: none; width: 100%; margin-top: 10px;">Cancel</button>
             </form>
         </div>
     </main>
-
-    <!-- Dynamic Footer Placeholder -->
     <div id="footer-placeholder"></div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script src="js/load-fragment.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
@@ -149,6 +154,9 @@
             document.getElementById('view-businessname').textContent = v.business_name || '';
             document.getElementById('view-city').textContent = v.city || '';
             document.getElementById('view-address').textContent = v.address || '';
+            document.getElementById('view-pin').textContent = (v.latitude != null && v.longitude != null)
+                ? 'Pinned (' + Number(v.latitude).toFixed(4) + ', ' + Number(v.longitude).toFixed(4) + ')'
+                : 'Not set yet. Please edit your details and mark your shop on the map.';
 
             const statusEl = document.getElementById('view-status');
             statusEl.textContent = formatStatus(v.verification_status);
@@ -161,6 +169,8 @@
 
         // Show the form, prefilled when editing an existing profile
         function showForm() {
+            document.getElementById('place-search').value = '';
+            document.getElementById('search-results').style.display = 'none';
             const v = currentProfile;
             const isEdit = Boolean(v);
 
@@ -177,7 +187,92 @@
 
             document.getElementById('profile-view').style.display = 'none';
             document.getElementById('vendor-form').style.display = 'block';
+
+            // The map can only be sized once its box is visible
+            initMap();
+            if (v && v.latitude != null && v.longitude != null) {
+                setPin(Number(v.latitude), Number(v.longitude), true);
+            } else {
+                pin = null;
+                if (marker) { map.removeLayer(marker); marker = null; }
+                document.getElementById('map-status').textContent = '';
+                map.setView(NAIROBI, 12);
+            }
+            setTimeout(() => map.invalidateSize(), 50);
         }
+
+        // ── Map pin ───────────────────────────────────────────────
+        const NAIROBI = [-1.2921, 36.8219];
+        let map = null, marker = null, pin = null;
+
+        function initMap() {
+            if (map) return;
+            map = L.map('location-map').setView(NAIROBI, 12);
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+            map.on('click', (e) => setPin(e.latlng.lat, e.latlng.lng, false));
+        }
+
+        function setPin(lat, lng, recentre) {
+            pin = { lat, lng };
+            if (marker) marker.setLatLng([lat, lng]);
+            else marker = L.marker([lat, lng], { draggable: true }).addTo(map)
+                .on('dragend', () => { const p = marker.getLatLng(); setPin(p.lat, p.lng, false); });
+            if (recentre) map.setView([lat, lng], 16);
+            document.getElementById('map-status').textContent = 'Location set';
+        }
+
+        // ── Place search (OpenStreetMap Nominatim, free, Kenya only) ──
+        async function searchPlace() {
+            const q = document.getElementById('place-search').value.trim();
+            const list = document.getElementById('search-results');
+            if (q.length < 3) return;
+
+            list.style.display = 'block';
+            list.innerHTML = '<li class="none">Searching...</li>';
+
+            try {
+                const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=ke'
+                          + '&viewbox=36.65,-1.45,37.10,-1.15&q=' + encodeURIComponent(q);
+                const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                const places = await res.json();
+
+                if (!places.length) {
+                    list.innerHTML = '<li class="none">No places found. Try a nearby landmark or click the map.</li>';
+                    return;
+                }
+                list.innerHTML = '';
+                places.forEach(p => {
+                    const li = document.createElement('li');
+                    li.textContent = p.display_name;
+                    li.addEventListener('click', () => {
+                        initMap();
+                        setPin(parseFloat(p.lat), parseFloat(p.lon), true);
+                        list.style.display = 'none';
+                    });
+                    list.appendChild(li);
+                });
+            } catch (err) {
+                console.error('Place search failed:', err);
+                list.innerHTML = '<li class="none">Search is unavailable right now. Click the map instead.</li>';
+            }
+        }
+
+        document.getElementById('search-btn').addEventListener('click', searchPlace);
+        document.getElementById('place-search').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); searchPlace(); }   // Enter searches, it does not submit the form
+        });
+
+        document.getElementById('locate-btn').addEventListener('click', () => {
+            if (!navigator.geolocation) { showAlert('Your browser cannot share its location. Click the map instead.', false); return; }
+            navigator.geolocation.getCurrentPosition(
+                (pos) => setPin(pos.coords.latitude, pos.coords.longitude, true),
+                () => showAlert('Could not get your location. Allow location access, or click the map instead.', false),
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        });
 
         document.getElementById('edit-btn').addEventListener('click', showForm);
         document.getElementById('cancel-btn').addEventListener('click', () => {
@@ -192,10 +287,18 @@
             const submitBtn = document.getElementById('submit-btn');
             submitBtn.disabled = true;
 
+            if (!pin) {
+                showAlert('Please mark your shop location on the map.', false);
+                submitBtn.disabled = false;
+                return;
+            }
+
             const payload = {
                 business_name: document.getElementById('businessname').value.trim(),
                 city: document.getElementById('city').value.trim(),
-                address: document.getElementById('address').value.trim()
+                address: document.getElementById('address').value.trim(),
+                latitude: pin.lat,
+                longitude: pin.lng
             };
 
             try {
