@@ -8,42 +8,6 @@
     <link rel="icon" href="images/favicon.ico" sizes="any">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/vendor-dashboard.css">
-    <style>
-        
-        .navbar a.btn-logout {
-            display: inline-block; background-color: #dc3545; color: #ffffff;
-            padding: 10px 20px; border-radius: 8px; font-size: 0.95rem;
-            font-weight: 700; text-decoration: none;
-        }
-        .navbar a.btn-logout:hover { background-color: #bd2130; }
-        /* Edit and Delete sit side by side with a small gap */
-        .action-buttons { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
-        .action-buttons .btn-edit,
-        .action-buttons .btn-delete { display: inline-block; width: auto; margin: 0; white-space: nowrap; }
-        .btn-edit {
-            background: #285da7; color: #fff; border: none; border-radius: 6px;
-            padding: 8px 14px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
-        }
-        .btn-edit:hover { background: #1f4b88; }
-        .edit-backdrop {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 2000;
-            display: none; align-items: center; justify-content: center; padding: 16px;
-        }
-        .edit-backdrop.open { display: flex; }
-        .edit-modal {
-            background: #fff; border-radius: 12px; padding: 28px; width: 100%;
-            max-width: 460px; max-height: 90vh; overflow-y: auto;
-        }
-        .edit-modal h3 { margin-bottom: 16px; color: #28a745; }
-        .edit-modal .form-group { margin-bottom: 14px; }
-        .edit-modal label { display: block; margin-bottom: 4px; font-weight: 600; font-size: 0.9rem; }
-        .edit-modal input, .edit-modal select { width: 100%; box-sizing: border-box; }
-        .edit-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
-        .edit-cancel {
-            background: #fff; color: #333; border: 1px solid #ced4da; border-radius: 6px;
-            padding: 10px 18px; font-weight: 600; cursor: pointer;
-        }
-    </style>
 </head>
 <body>
 
@@ -95,6 +59,12 @@
                     <label for="expiryTime">Expiry Date/Time</label>
                     <input type="datetime-local" id="expiryTime" name="expiry_time" required>
                 </div>
+                <div class="form-group">
+                    <label for="itemPhoto">Photo (optional)</label>
+                    <input type="file" id="itemPhoto" name="image" accept="image/jpeg,image/png,image/webp">
+                    <img id="itemPhotoPreview" class="photo-preview" alt="Photo preview">
+                    <div class="photo-hint">Shows consumers what they are ordering. JPG, PNG or WebP.</div>
+                </div>
                 <div class="form-group btn-align">
                     <button type="submit" class="btn-submit">Add Listing</button>
                 </div>
@@ -143,6 +113,14 @@
                 <label for="editExpiry">Expiry Date/Time</label>
                 <input type="datetime-local" id="editExpiry" required>
             </div>
+            <div class="form-group">
+                <label for="editPhoto">Photo</label>
+                <img id="editPhotoPreview" class="photo-preview" alt="Current photo">
+                <input type="file" id="editPhoto" accept="image/jpeg,image/png,image/webp" style="margin-top: 8px;">
+                <label class="photo-remove" id="editRemoveWrap" style="display: none;">
+                    <input type="checkbox" id="editRemovePhoto"> Remove current photo
+                </label>
+            </div>
             <div class="edit-actions">
                 <button type="button" class="edit-cancel" id="edit-cancel">Cancel</button>
                 <button type="submit" class="btn-submit" id="edit-save">Save Changes</button>
@@ -175,6 +153,39 @@
             document.querySelectorAll('#add-listing-form input, #add-listing-form select, #add-listing-form button')
                 .forEach(el => { el.disabled = !isVerified; });
         }
+
+        // Shrinks a chosen photo (max 1000px, JPEG) so phone photos upload quickly
+        async function preparePhoto(file) {
+            if (!file) return null;
+            if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+                throw new Error('Please choose a JPG, PNG or WebP image.');
+            }
+            const bitmap = await createImageBitmap(file);
+            const scale = Math.min(1, 1000 / Math.max(bitmap.width, bitmap.height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(bitmap.width * scale);
+            canvas.height = Math.round(bitmap.height * scale);
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';              // PNGs with see-through areas get a white background
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+            return await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+        }
+
+        function showPreview(input, img) {
+            const file = input.files && input.files[0];
+            if (!file) { img.classList.remove('show'); img.removeAttribute('src'); return; }
+            img.src = URL.createObjectURL(file);
+            img.classList.add('show');
+        }
+
+        document.getElementById('itemPhoto').addEventListener('change', (e) => {
+            showPreview(e.target, document.getElementById('itemPhotoPreview'));
+        });
+        document.getElementById('editPhoto').addEventListener('change', (e) => {
+            showPreview(e.target, document.getElementById('editPhotoPreview'));
+            if (e.target.files[0]) document.getElementById('editRemovePhoto').checked = false;
+        });
 
         let currentListings = [];
         async function fetchListings() {
@@ -223,6 +234,9 @@
 
                     return `
                         <tr>
+                            <td>${l.image_path
+                                ? `<img class="listing-thumb" src="${escapeHtml(l.image_path)}" alt="${escapeHtml(l.item_name)}">`
+                                : '<div class="listing-thumb none">No photo</div>'}</td>
                             <td>#LST-${id}</td>
                             <td>${escapeHtml(l.item_name)}</td>
                             <td>${escapeHtml(l.category || '—')}</td>
@@ -245,6 +259,7 @@
                     <table>
                         <thead>
                             <tr>
+                                <th>Photo</th>
                                 <th>Listing ID</th>
                                 <th>Item Name</th>
                                 <th>Category</th>
@@ -266,24 +281,25 @@
                 container.innerHTML = '<p class="muted">Failed to load active listings.</p>';
             }
         }
+
+        // Add Listing via PHP API
         document.getElementById('add-listing-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const payload = {
-                item_name: document.getElementById('itemName').value,
-                category: document.getElementById('itemCategory').value,
-                quantity: parseInt(document.getElementById('itemQuantity').value, 10),
-                original_price: parseInt(document.getElementById('originalPrice').value, 10),
-                discounted_price: parseInt(document.getElementById('discountedPrice').value, 10),
-                expiry_time: document.getElementById('expiryTime').value
-            };
+            const fd = new FormData();
+            fd.append('item_name', document.getElementById('itemName').value);
+            fd.append('category', document.getElementById('itemCategory').value);
+            fd.append('quantity', parseInt(document.getElementById('itemQuantity').value, 10));
+            fd.append('original_price', parseInt(document.getElementById('originalPrice').value, 10));
+            fd.append('discounted_price', parseInt(document.getElementById('discountedPrice').value, 10));
+            fd.append('expiry_time', document.getElementById('expiryTime').value);
 
             try {
-                const res = await fetch('api/create-listing.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+                const photo = await preparePhoto(document.getElementById('itemPhoto').files[0]);
+                if (photo) fd.append('image', photo, 'photo.jpg');
+
+                // No Content-Type header: the browser sets it for file uploads
+                const res = await fetch('api/create-listing.php', { method: 'POST', body: fd });
                 
                 const rawText = await res.text();
                 let result = JSON.parse(rawText);
@@ -291,13 +307,14 @@
                 if (result.success) {
                     showAlert(result.message || 'Listing added successfully.', true);
                     document.getElementById('add-listing-form').reset();
+                    document.getElementById('itemPhotoPreview').classList.remove('show');
                     fetchListings();
                 } else {
                     showAlert(result.message || 'Failed to add listing.', false);
                 }
             } catch (err) {
                 console.error('Error adding listing:', err);
-                showAlert('An unexpected error occurred while adding the listing.', false);
+                showAlert(err.message || 'An unexpected error occurred while adding the listing.', false);
             }
         });
         function toLocalInput(mysqlDate) {
@@ -315,6 +332,17 @@
             document.getElementById('editOriginal').value = Math.round(parseFloat(l.original_price));
             document.getElementById('editDiscounted').value = Math.round(parseFloat(l.discounted_price));
             document.getElementById('editExpiry').value = toLocalInput(l.expiry_time);
+            const prev = document.getElementById('editPhotoPreview');
+            document.getElementById('editPhoto').value = '';
+            document.getElementById('editRemovePhoto').checked = false;
+            if (l.image_path) {
+                prev.src = l.image_path;
+                prev.classList.add('show');
+            } else {
+                prev.classList.remove('show');
+                prev.removeAttribute('src');
+            }
+            document.getElementById('editRemoveWrap').style.display = l.image_path ? 'flex' : 'none';
             document.getElementById('edit-modal').classList.add('open');
         }
 
@@ -333,22 +361,21 @@
             const saveBtn = document.getElementById('edit-save');
             saveBtn.disabled = true;
 
-            const payload = {
-                listing_id: parseInt(document.getElementById('editId').value, 10),
-                item_name: document.getElementById('editName').value,
-                category: document.getElementById('editCategory').value,
-                quantity: parseInt(document.getElementById('editQuantity').value, 10),
-                original_price: parseInt(document.getElementById('editOriginal').value, 10),
-                discounted_price: parseInt(document.getElementById('editDiscounted').value, 10),
-                expiry_time: document.getElementById('editExpiry').value
-            };
+            const fd = new FormData();
+            fd.append('listing_id', parseInt(document.getElementById('editId').value, 10));
+            fd.append('item_name', document.getElementById('editName').value);
+            fd.append('category', document.getElementById('editCategory').value);
+            fd.append('quantity', parseInt(document.getElementById('editQuantity').value, 10));
+            fd.append('original_price', parseInt(document.getElementById('editOriginal').value, 10));
+            fd.append('discounted_price', parseInt(document.getElementById('editDiscounted').value, 10));
+            fd.append('expiry_time', document.getElementById('editExpiry').value);
+            if (document.getElementById('editRemovePhoto').checked) fd.append('remove_image', '1');
 
             try {
-                const res = await fetch('api/update-listing.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+                const photo = await preparePhoto(document.getElementById('editPhoto').files[0]);
+                if (photo) fd.append('image', photo, 'photo.jpg');
+
+                const res = await fetch('api/update-listing.php', { method: 'POST', body: fd });
                 const result = JSON.parse(await res.text());
 
                 closeEditModal();
@@ -361,7 +388,7 @@
             } catch (err) {
                 console.error('Error updating listing:', err);
                 closeEditModal();
-                showAlert('An unexpected error occurred while updating the listing.', false);
+                showAlert(err.message || 'An unexpected error occurred while updating the listing.', false);
             } finally {
                 saveBtn.disabled = false;
             }

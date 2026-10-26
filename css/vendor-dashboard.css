@@ -96,10 +96,8 @@
     background-color: #bd2130;
 }
 
-/* Navbar Logout button (injected by includes/navbar.html).
-   Plain .btn-logout works on its own, same as in admin-dashboard.css;
-   the .navbar-prefixed selector also wins over any generic link styling. */
 .btn-logout,
+.navbar a.btn-logout,
 .navbar .navbar-user a.btn-logout {
     display: inline-block;
     background-color: #dc3545;
@@ -113,6 +111,7 @@
 }
 
 .btn-logout:hover,
+.navbar a.btn-logout:hover,
 .navbar .navbar-user a.btn-logout:hover {
     background-color: #bd2130;
 }
@@ -146,6 +145,46 @@ th {
     color: #dc3545;
     font-weight: 600;
 }
+
+/* Edit and Delete sit side by side with a small gap */
+.action-buttons { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
+.action-buttons .btn-edit,
+.action-buttons .btn-delete { display: inline-block; width: auto; margin: 0; white-space: nowrap; }
+
+.btn-edit {
+    background: #285da7; color: #fff; border: none; border-radius: 6px;
+    padding: 8px 14px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+}
+.btn-edit:hover { background: #1f4b88; }
+
+/* Edit listing window */
+.edit-backdrop {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: 2000;
+    display: none; align-items: center; justify-content: center; padding: 16px;
+}
+.edit-backdrop.open { display: flex; }
+.edit-modal {
+    background: #fff; border-radius: 12px; padding: 28px; width: 100%;
+    max-width: 460px; max-height: 90vh; overflow-y: auto;
+}
+.edit-modal h3 { margin-bottom: 16px; color: #28a745; }
+.edit-modal .form-group { margin-bottom: 14px; }
+.edit-modal label { display: block; margin-bottom: 4px; font-weight: 600; font-size: 0.9rem; }
+.edit-modal input, .edit-modal select { width: 100%; box-sizing: border-box; }
+.edit-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+.edit-cancel {
+    background: #fff; color: #333; border: 1px solid #ced4da; border-radius: 6px;
+    padding: 10px 18px; font-weight: 600; cursor: pointer;
+}
+
+/* Listing photos (upload preview and table thumbnail) */
+.photo-preview { display: none; width: 100%; max-height: 160px; object-fit: cover; border-radius: 8px; margin-top: 8px; border: 1px solid #dee2e6; }
+.photo-preview.show { display: block; }
+.photo-hint { font-size: 0.8rem; color: #6c757d; margin-top: 4px; }
+.photo-remove { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 0.85rem; font-weight: 500; }
+.photo-remove input { width: auto; }
+.listing-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid #dee2e6; display: block; }
+.listing-thumb.none { display: flex; align-items: center; justify-content: center; background: #f1f3f5; color: #adb5bd; font-size: 0.7rem; }
 
 /* ── Responsive ─────────────────────────────────────────────────────────── */
 
