@@ -16,10 +16,35 @@
     <div class="dashboard-container">
         <div id="alert-msg" style="display: none; padding: 12px 16px; margin-bottom: 20px; border-radius: 6px; font-weight: 500;"></div>
 
-        <div class="dashboard-header">
-            <h2>Vendor Control Panel</h2>
+        <div class="dashboard-header" style="justify-content: flex-end;">
             <button onclick="alert('Opening QR Camera Scanner...')" class="btn-scan">Scan Consumer QR</button>
         </div>
+
+        <!-- DASHBOARD -->
+        <section id="tab-dashboard" class="tab-section">
+        <!-- Overview numbers -->
+        <div class="stat-grid" id="stat-grid">
+            <div class="stat-card"><span class="stat-value" id="stat-active">-</span><span class="stat-label">Active listings</span></div>
+            <div class="stat-card"><span class="stat-value" id="stat-available">-</span><span class="stat-label">Items available</span></div>
+            <div class="stat-card"><span class="stat-value" id="stat-reserved">-</span><span class="stat-label">Awaiting collection</span></div>
+            <div class="stat-card"><span class="stat-value" id="stat-collected">-</span><span class="stat-label">Meals collected</span></div>
+            <div class="stat-card"><span class="stat-value" id="stat-revenue">-</span><span class="stat-label">Payments received (KES)</span></div>
+            <div class="stat-card"><span class="stat-value" id="stat-pending">-</span><span class="stat-label">Payments pending (KES)</span></div>
+        </div>
+
+        <div class="table-card">
+            <div class="card-title-row">
+                <h3>Latest Orders</h3>
+                <a class="btn-download" href="#orders">View all orders</a>
+            </div>
+            <div id="recent-orders">
+                <p class="muted">Loading orders...</p>
+            </div>
+        </div>
+        </section>
+
+        <!-- MY LISTINGS -->
+        <section id="tab-listings" class="tab-section" style="display: none;">
         <div class="table-card">
             <h3>List Surplus Food Item</h3>
             <p id="verification-notice" class="flash flash-error" style="display: none; margin-bottom: 20px;">
@@ -76,6 +101,33 @@
                 <p class="muted">Loading listings...</p>
             </div>
         </div>
+
+        </section>
+
+        <!-- ORDERS & PAYMENTS -->
+        <section id="tab-orders" class="tab-section" style="display: none;">
+        <div class="table-card">
+            <h3>Orders &amp; Payments</h3>
+            <p class="muted section-note">Consumers pay you when they collect. Press "Payment received" once you have been paid.</p>
+            <div id="orders-container">
+                <p class="muted">Loading orders...</p>
+            </div>
+        </div>
+
+        </section>
+
+        <!-- REPORTS -->
+        <section id="tab-reports" class="tab-section" style="display: none;">
+        <div class="table-card">
+            <div class="card-title-row">
+                <h3>Sales &amp; Redistribution Report</h3>
+                <button type="button" class="btn-download" id="download-report">Download CSV</button>
+            </div>
+            <div id="report-container">
+                <p class="muted">Loading report...</p>
+            </div>
+        </div>
+        </section>
     </div>
     <div class="edit-backdrop" id="edit-modal">
         <form class="edit-modal" id="edit-listing-form">
@@ -134,6 +186,19 @@
     <script>
         loadFragment('nav-placeholder', 'includes/navbar.html');
         loadFragment('footer-placeholder', 'includes/footer.html');
+
+        // ── Sections (chosen by the navbar links: #dashboard, #listings, #orders, #reports) ──
+        const SECTIONS = ['dashboard', 'listings', 'orders', 'reports'];
+
+        function activateTab(name) {
+            if (!SECTIONS.includes(name)) name = 'dashboard';
+            SECTIONS.forEach(t => {
+                const panel = document.getElementById('tab-' + t);
+                if (panel) panel.style.display = (t === name) ? '' : 'none';
+            });
+        }
+        window.addEventListener('hashchange', () => activateTab(location.hash.slice(1)));
+        activateTab(location.hash.slice(1));
 
         // Helper function for feedback banners
         function showAlert(message, isSuccess = true) {
@@ -220,8 +285,19 @@
                 }
 
                 currentListings = data.listings;
+
+                // Each vendor's listings are numbered 1, 2, 3... in the order they were added.
+                // (The shared database id is still used behind the scenes for Edit and Delete.)
+                const listingNo = {};
+                [...data.listings]
+                    .sort((a, b) => Number(a.listings_id || a.id) - Number(b.listings_id || b.id))
+                    .forEach((l, i) => { listingNo[l.listings_id || l.id] = i + 1; });
                 const rows = data.listings.map(l => {
                     const isExpired = new Date(l.expiry_time) < new Date();
+                    // Expired (time is up) > Sold out (none left) > Active (still on sale)
+                    const isSoldOut = !isExpired && Number(l.quantity) < 1;
+                    const statusClass = isExpired ? 'inactive' : (isSoldOut ? 'soldout' : 'active');
+                    const statusText = isExpired ? 'Expired' : (isSoldOut ? 'Sold out' : 'Active');
                     const formattedDate = new Date(l.expiry_time).toLocaleString('en-GB', {
                         day: '2-digit',
                         month: 'short',
@@ -237,14 +313,14 @@
                             <td>${l.image_path
                                 ? `<img class="listing-thumb" src="${escapeHtml(l.image_path)}" alt="${escapeHtml(l.item_name)}">`
                                 : '<div class="listing-thumb none">No photo</div>'}</td>
-                            <td>#LST-${id}</td>
+                            <td>#LST-${listingNo[id]}</td>
                             <td>${escapeHtml(l.item_name)}</td>
                             <td>${escapeHtml(l.category || '—')}</td>
                             <td>${l.quantity}</td>
                             <td>KES ${Math.round(parseFloat(l.original_price)).toLocaleString('en-KE')}</td>
                             <td>KES ${Math.round(parseFloat(l.discounted_price)).toLocaleString('en-KE')}</td>
                             <td>${formattedDate}</td>
-                            <td><span class="status-${isExpired ? 'inactive' : 'active'}">${isExpired ? 'Expired' : 'Active'}</span></td>
+                            <td><span class="status-${statusClass}">${statusText}</span></td>
                             <td>
                                 <div class="action-buttons">
                                     <button class="btn-edit" onclick="openEditModal(${id})">Edit</button>
@@ -417,7 +493,167 @@
                 showAlert('An unexpected error occurred while deleting the listing.', false);
             }
         }
+
+        // ── Orders, payments and report ───────────────────────────────
+        const kes = (n) => Math.round(Number(n) || 0).toLocaleString('en-KE');
+        let overview = null;
+
+        async function loadOverview() {
+            const ordersBox = document.getElementById('orders-container');
+            const reportBox = document.getElementById('report-container');
+            const recentBox = document.getElementById('recent-orders');
+            try {
+                const res = await fetch('api/get-vendor-overview.php');
+                const data = JSON.parse(await res.text());
+                if (!data.success) {
+                    ordersBox.innerHTML = `<p class="muted">${escapeHtml(data.message || 'Failed to load orders.')}</p>`;
+                    recentBox.innerHTML = ordersBox.innerHTML;
+                    reportBox.innerHTML = '';
+                    return;
+                }
+                overview = data;
+                renderStats();
+                renderRecentOrders();
+                renderOrders();
+                renderReport();
+            } catch (err) {
+                console.error('Error loading overview:', err);
+                ordersBox.innerHTML = '<p class="muted">Failed to load orders.</p>';
+                recentBox.innerHTML = ordersBox.innerHTML;
+                reportBox.innerHTML = '<p class="muted">Failed to load the report.</p>';
+            }
+        }
+
+        function renderStats() {
+            const s = overview.summary || {};
+            const set = (id, v) => { document.getElementById(id).textContent = v; };
+            set('stat-active', s.active_listings ?? 0);
+            set('stat-available', s.items_available ?? 0);
+            set('stat-reserved', s.reserved ?? 0);
+            set('stat-collected', s.collected ?? 0);
+            set('stat-revenue', kes(s.revenue_received));
+            set('stat-pending', kes(s.payments_pending));
+        }
+
+        // Five newest orders on the dashboard section
+        function renderRecentOrders() {
+            const box = document.getElementById('recent-orders');
+            const latest = overview.orders.slice(0, 5);
+            if (!latest.length) {
+                box.innerHTML = '<p class="muted">No consumers have reserved your food yet.</p>';
+                return;
+            }
+            const statusText = { reserved: 'Reserved', collected: 'Collected', cancelled: 'Cancelled' };
+            const rows = latest.map(o => `<tr>
+                <td>#ORD-${o.order_no}</td>
+                <td>${escapeHtml(o.customer)}</td>
+                <td>${escapeHtml(o.item_name)}</td>
+                <td>KES ${kes(o.amount)}</td>
+                <td><span class="order-badge order-${escapeHtml(o.order_status)}">${escapeHtml(statusText[o.order_status] || o.order_status)}</span></td>
+            </tr>`).join('');
+            box.innerHTML = `<table>
+                <thead><tr><th>Order</th><th>Customer</th><th>Item</th><th>Amount</th><th>Status</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+        }
+
+        function renderOrders() {
+            const box = document.getElementById('orders-container');
+            if (!overview.orders.length) {
+                box.innerHTML = '<p class="muted">No consumers have reserved your food yet.</p>';
+                return;
+            }
+            const statusText = { reserved: 'Reserved', collected: 'Collected', cancelled: 'Cancelled' };
+            const rows = overview.orders.map(o => {
+                const cancelled = o.order_status === 'cancelled';
+                const payClass = cancelled ? 'pay-none' : (o.payment_paid ? 'pay-paid' : 'pay-pending');
+                const payText = cancelled ? 'Cancelled' : (o.payment_paid ? 'Paid' : 'Pending');
+                const action = (!cancelled && !o.payment_paid)
+                    ? `<button class="btn-edit" onclick="markPaid(${o.order_id}, this)">Payment received</button>`
+                    : '<span class="muted">-</span>';
+                return `<tr>
+                    <td>#ORD-${o.order_no}</td>
+                    <td>${escapeHtml(o.customer)}</td>
+                    <td>${escapeHtml(o.item_name)}</td>
+                    <td>KES ${kes(o.amount)}</td>
+                    <td>${escapeHtml(o.payment_method || '-')}</td>
+                    <td><span class="pay-badge ${payClass}">${payText}</span></td>
+                    <td><span class="order-badge order-${escapeHtml(o.order_status)}">${escapeHtml(statusText[o.order_status] || o.order_status)}</span></td>
+                    <td>${action}</td>
+                </tr>`;
+            }).join('');
+            box.innerHTML = `<table>
+                <thead><tr>
+                    <th>Order</th><th>Customer</th><th>Item</th><th>Amount</th>
+                    <th>Method</th><th>Payment</th><th>Order status</th><th>Action</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+        }
+
+        async function markPaid(orderId, btn) {
+            if (!confirm('Confirm you have received this payment?')) return;
+            btn.disabled = true;
+            try {
+                const res = await fetch('api/mark-payment-received.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order_id: orderId })
+                });
+                const result = JSON.parse(await res.text());
+                showAlert(result.message || (result.success ? 'Payment recorded.' : 'Could not record the payment.'), !!result.success);
+                loadOverview();
+            } catch (err) {
+                console.error('Error recording payment:', err);
+                showAlert('An unexpected error occurred while recording the payment.', false);
+                btn.disabled = false;
+            }
+        }
+
+        function renderReport() {
+            const box = document.getElementById('report-container');
+            if (!overview.items.length) {
+                box.innerHTML = '<p class="muted">No sales yet. The report fills in as consumers reserve and collect your food.</p>';
+                return;
+            }
+            const s = overview.summary;
+            const rows = overview.items.map(i => `<tr>
+                <td>${escapeHtml(i.item_name)}</td>
+                <td>${i.reserved}</td>
+                <td>${i.collected}</td>
+                <td>${i.cancelled}</td>
+                <td>KES ${kes(i.revenue_received)}</td>
+                <td>KES ${kes(i.payments_pending)}</td>
+            </tr>`).join('');
+            box.innerHTML = `<table>
+                <thead><tr>
+                    <th>Item</th><th>Reserved</th><th>Collected</th><th>Cancelled</th>
+                    <th>Received</th><th>Pending</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+                <tfoot><tr class="total-row">
+                    <td>Total</td><td>${s.reserved}</td><td>${s.collected}</td><td>${s.cancelled}</td>
+                    <td>KES ${kes(s.revenue_received)}</td><td>KES ${kes(s.payments_pending)}</td>
+                </tr></tfoot>
+            </table>`;
+        }
+
+        document.getElementById('download-report').addEventListener('click', () => {
+            if (!overview || !overview.items.length) { showAlert('There is no report data to download yet.', false); return; }
+            const cell = (v) => '"' + String(v).replace(/"/g, '""') + '"';
+            const lines = [['Item', 'Reserved', 'Collected', 'Cancelled', 'Payments received (KES)', 'Payments pending (KES)'].map(cell).join(',')];
+            overview.items.forEach(i => lines.push([i.item_name, i.reserved, i.collected, i.cancelled,
+                Math.round(i.revenue_received), Math.round(i.payments_pending)].map(cell).join(',')));
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'sales-report.csv';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        });
+
         fetchListings();
+        loadOverview();
     </script>
 </body>
 </html>

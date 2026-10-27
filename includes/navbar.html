@@ -12,6 +12,8 @@
         transition: background 0.2s ease;
     }
     .navbar .navbar-user a.btn-logout:hover { background-color: #bd2130; }
+
+    /* Signed-in user's first name, shown to the left of the Logout button */
     .navbar .navbar-user { display: flex; align-items: center; gap: 16px; }
     .navbar .navbar-user .user-name {
         font-size: 1rem;
@@ -99,12 +101,28 @@
             };
 
             if (role === 'vendor') {
+                // Vendor sections all live on vendor-dashboard.html and switch using the URL hash.
+                const vendorTab = () => currentPage === 'vendor-dashboard.html'
+                    ? ((window.location.hash || '#dashboard').replace('#', '') || 'dashboard') : '';
+                const vendorLink = (tab, label) =>
+                    `<a href="vendor-dashboard.html#${tab}" data-tab="${tab}" class="${vendorTab() === tab ? 'active' : ''}">${label}</a>`;
+
                 linksContainer.innerHTML = `
                     <a href="index.html" class="${isActive('index.html')}">Home</a>
                     <a href="about.html" class="${isActive('about.html')}">About</a>
-                    <a href="vendor-dashboard.html" class="${isActive('vendor-dashboard.html')}">Vendor Portal</a>
+                    ${vendorLink('dashboard', 'Dashboard')}
+                    ${vendorLink('listings', 'My Listings')}
+                    ${vendorLink('orders', 'Orders &amp; Payments')}
+                    ${vendorLink('reports', 'Reports')}
                     <a href="vendor-details.html" class="${isActive('vendor-details.html')}">Business Profile</a>
                 `;
+
+                // Keep the highlight in step when the section changes
+                window.addEventListener('hashchange', () => {
+                    linksContainer.querySelectorAll('a[data-tab]').forEach(a => {
+                        a.classList.toggle('active', a.dataset.tab === vendorTab());
+                    });
+                });
             } else if (role === 'admin') {
                 linksContainer.innerHTML = `
                     <a href="index.html" class="${isActive('index.html')}">Home</a>
@@ -124,6 +142,7 @@
                     <a href="index.html" class="${isActive('index.html')}">Home</a>
                     <a href="about.html" class="${isActive('about.html')}">About</a>
                     ${tabLink('browse', 'Browse Listings')}
+                    <a href="vendor-map.html" class="${isActive('vendor-map.html')}">Vendor Map</a>
                     ${tabLink('orders', 'My Orders')}
                     ${tabLink('points', 'My Points')}
                 `;
