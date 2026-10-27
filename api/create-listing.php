@@ -22,7 +22,7 @@ $allowedCategories = [
     'Bakery & Pastries',
     'Cakes & Desserts',
     'Cooked Meals',
-    'Sandwiches & Snacks',
+    'Sandwiches ',
     'Salads & Fresh Produce',
     'Other'
 ];

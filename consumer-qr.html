@@ -62,15 +62,17 @@
 
     <script src="js/load-fragment.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="js/consumer-core.js?v=4"></script>
-    <script src="js/consumer-orders.js?v=4"></script>
-    <script src="js/consumer-points.js?v=4"></script>
+    <script src="js/consumer-core.js?v=5"></script>
+    <script src="js/consumer-orders.js?v=5"></script>
+    <script src="js/consumer-points.js?v=5"></script>
 
     <script>
         (async function () {
             loadFragment('navbar-placeholder', 'includes/navbar.html');
 
             const set = (id, text) => { document.getElementById(id).textContent = text; };
+
+            // Demo reservation from a sample listing (kept in the browser only)
             if (new URLSearchParams(window.location.search).get('demo')) {
                 let demo = null;
                 try { demo = JSON.parse(sessionStorage.getItem('demoReservation') || 'null'); } catch (e) { /* ignore */ }
@@ -91,6 +93,8 @@
             }
 
             const orderId = Number(new URLSearchParams(window.location.search).get('order_id'));
+
+            // What the checkout page saved about this order (item and payment method)
             let saved = null;
             try { saved = JSON.parse(sessionStorage.getItem('lastReservation') || 'null'); } catch (e) { /* ignore */ }
             if (saved && Number(saved.order_id) !== orderId) saved = null;
@@ -110,7 +114,7 @@
                 document.getElementById('qr-slot').appendChild(document.getElementById('qr-box'));
                 document.getElementById('code-slot').appendChild(document.getElementById('qr-code-text'));
 
-                set('d-ref', order.order_ref || order.order_reference || order.reference || ('ORD-' + order.order_id));
+                set('d-ref', 'ORD-' + order.order_no);
                 set('d-item', (saved && saved.item_name) || order.item_name || '-');
                 set('d-payment', (saved && saved.payment_method) || order.payment_method || '-');
                 set('d-status', statusLabels[String(order.status || 'reserved').toLowerCase()] || 'Ready for Pickup');

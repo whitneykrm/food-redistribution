@@ -1,3 +1,9 @@
+function numberOrders(orders) {
+    [...orders]
+        .sort((a, b) => Number(a.order_id) - Number(b.order_id))
+        .forEach((o, i) => { o.order_no = i + 1; });
+}
+
 async function loadOrders() {
     const list = $('orders-list');
     try {
@@ -10,6 +16,7 @@ async function loadOrders() {
             return;
         }
         myOrders = data.orders;
+        numberOrders(myOrders);
         points = data.points || points;
         rules = data.rules || rules;
         renderPoints();
@@ -58,7 +65,7 @@ function renderOrders() {
         return `
             <article class="order-card">
                 <div class="order-main">
-                    <div class="order-ref">ORDER #ORD-${o.order_id}</div>
+                    <div class="order-ref">ORDER #ORD-${o.order_no}</div>
                     <h3 class="item-name">${escapeHtml(o.item_name)}</h3>
                     <div class="meta">
                         <span>${escapeHtml(o.business_name)}</span>
@@ -83,7 +90,7 @@ function renderOrders() {
 function buildQrText(order) {
     return [
         'FOOD CONNECT',
-        'Order #ORD-' + order.order_id,
+        'Order #ORD-' + order.order_no,
         order.item_name,
         order.business_name + (order.city ? ', ' + order.city : ''),
         'Code: ' + order.qr_code
@@ -92,7 +99,7 @@ function buildQrText(order) {
 
 function openQrModal(order) {
     $('qr-details').innerHTML =
-        `Order #ORD-${order.order_id} &middot; ${escapeHtml(order.item_name)}<br>` +
+        `Order #ORD-${order.order_no} &middot; ${escapeHtml(order.item_name)}<br>` +
         `${escapeHtml(order.business_name)} &middot; ${escapeHtml(order.address)}`;
 
     const box = $('qr-box');
@@ -103,6 +110,8 @@ function openQrModal(order) {
     $('qr-code-text').textContent = order.qr_code;
     $('qr-modal').classList.add('open');
 }
+
+// ── Cancel ─────────────────────────────────────────────────────
 async function cancelOrder(orderId) {
     if (!confirm('Cancel this reservation? Any points used on it are refunded.')) return;
     try {
