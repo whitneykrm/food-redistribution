@@ -120,6 +120,16 @@
         <section id="tab-reports" class="tab-section" style="display: none;">
         <div class="table-card">
             <div class="card-title-row">
+                <h3>Food Saved from Waste</h3>
+            </div>
+            <div id="chart-summary" class="chart-summary"></div>
+            <div id="chart-container">
+                <p class="muted">Loading graph...</p>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="card-title-row">
                 <h3>Sales &amp; Redistribution Report</h3>
                 <button type="button" class="btn-download" id="download-report">Download CSV</button>
             </div>
@@ -287,7 +297,6 @@
                 currentListings = data.listings;
 
                 // Each vendor's listings are numbered 1, 2, 3... in the order they were added.
-                // (The shared database id is still used behind the scenes for Edit and Delete.)
                 const listingNo = {};
                 [...data.listings]
                     .sort((a, b) => Number(a.listings_id || a.id) - Number(b.listings_id || b.id))
@@ -515,6 +524,7 @@
                 renderStats();
                 renderRecentOrders();
                 renderOrders();
+                renderChart();
                 renderReport();
             } catch (err) {
                 console.error('Error loading overview:', err);
@@ -608,6 +618,52 @@
                 showAlert('An unexpected error occurred while recording the payment.', false);
                 btn.disabled = false;
             }
+        }
+
+        function renderChart() {
+            const box = document.getElementById('chart-container');
+            const sum = document.getElementById('chart-summary');
+            const days = overview.daily || [];
+            const today = days[days.length - 1] || { meals: 0, at_risk: 0, recovered: 0 };
+            const weekRisk = days.reduce((a, d) => a + d.at_risk, 0);
+            const weekRecovered = days.reduce((a, d) => a + d.recovered, 0);
+            const weekMeals = days.reduce((a, d) => a + d.meals, 0);
+            const weekItems = days.reduce((a, d) => a + d.items_listed, 0);
+
+            sum.innerHTML = `
+                <div class="chart-tile"><span>KES ${kes(today.at_risk)}</span>Food at risk today</div>
+                <div class="chart-tile"><span>KES ${kes(today.recovered)}</span>Revenue recovered today</div>
+                <div class="chart-tile"><span>${weekMeals} of ${weekItems}</span>Items saved (7 days)</div>
+                <div class="chart-tile"><span>KES ${kes(weekRecovered)}</span>Revenue recovered (7 days)</div>`;
+
+            if (weekRisk === 0) {
+                box.innerHTML = '<p class="muted">No listings in the last 7 days yet. The graph fills in as you list food and consumers reserve it.</p>';
+                return;
+            }
+
+            const max = Math.max(1, ...days.map(d => Math.max(d.at_risk, d.recovered)));
+            box.innerHTML = `<div class="bar-chart">${days.map(d => {
+                const lost = Math.max(0, d.at_risk - d.recovered);
+                return `<div class="bar-col" title="${escapeHtml(d.label)}: ${d.items_listed} item(s) listed worth KES ${kes(d.at_risk)} at original price, ${d.meals} saved for KES ${kes(d.recovered)}, KES ${kes(lost)} not recovered">
+                    <div class="bar-pair">
+                        <div class="bar-item">
+                            <div class="bar-value">${d.at_risk ? kes(d.at_risk) : ''}</div>
+                            <div class="bar-stack"><div class="bar-risk" style="height:${(d.at_risk / max) * 100}%"></div></div>
+                        </div>
+                        <div class="bar-item">
+                            <div class="bar-value">${d.recovered ? kes(d.recovered) : ''}</div>
+                            <div class="bar-stack"><div class="bar-received" style="height:${(d.recovered / max) * 100}%"></div></div>
+                        </div>
+                    </div>
+                    <div class="bar-label">${escapeHtml(d.label)}</div>
+                    <div class="bar-meals">${d.meals} of ${d.items_listed} saved</div>
+                </div>`;
+            }).join('')}</div>
+            <div class="chart-legend">
+                <span><i class="dot dot-risk"></i>Food at risk (original price)</span>
+                <span><i class="dot dot-received"></i>Revenue recovered (what you were paid)</span>
+                <span class="muted">Amounts in KES</span>
+            </div>`;
         }
 
         function renderReport() {

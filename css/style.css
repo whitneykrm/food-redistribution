@@ -583,3 +583,29 @@ select:focus {
         margin: 20px auto; 
     }
 }
+html {
+    height: 100%;
+}
+
+/* keep every top-level block full width inside the flex layout */
+body > * {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#footer-placeholder,
+#footer-container {
+    margin-top: auto;
+    text-align: center;
+}
+
+#footer-placeholder footer,
+#footer-container footer,
+#footer-placeholder p,
+#footer-container p {
+    text-align: center;
+    margin: 0;
+    padding: 20px 0;
+    color: var(--grey);
+    font-size: .85rem;
+}

@@ -24,6 +24,19 @@ try {
 
     $paidValue = paidStatusValue($pdo);
 
+    // Last 7 days (oldest first) for the waste-recovery graph.
+    $daily = [];
+    for ($i = 6; $i >= 0; $i--) {
+        $ts  = strtotime("-$i day");
+        $key = date('Y-m-d', $ts);
+        $daily[$key] = [
+            'date' => $key, 'label' => $i === 0 ? 'Today' : date('D j', $ts),
+            'meals' => 0, 'items_listed' => 0, 'at_risk' => 0.0, 'recovered' => 0.0,
+        ];
+    }
+    $firstDay = array_key_first($daily);
+    $lastDay  = array_key_last($daily);
+
     // Every order placed on this vendor's listings
     $stmt = $pdo->prepare(
         "SELECT o.order_id, o.order_status,
@@ -50,6 +63,21 @@ try {
     );
     $stmt->execute([$vendorId]);
     $open = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Listings that expired in the last 7 days, plus food still on offer
+    $stmt = $pdo->prepare(
+        'SELECT listings_id, quantity, original_price, DATE(expiry_time) AS day
+         FROM listings
+         WHERE vendor_id = ? AND DATE(expiry_time) >= ?'
+    );
+    $stmt->execute([$vendorId, $firstDay]);
+    $windowListings = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $l) {
+        // Food that has not expired yet is at risk right now, so it counts under today
+        if ($l['day'] > $lastDay) { $l['day'] = $lastDay; }
+        $windowListings[(int) $l['listings_id']] = $l;
+    }
+    $activeOrders = [];   // listing id => orders that were not cancelled
 
     $summary = [
         'active_listings'  => (int) $open['active_listings'],
@@ -90,6 +118,14 @@ try {
             }
         }
 
+        $lid = (int) $r['listings_id'];
+        if ($status !== 'cancelled' && isset($windowListings[$lid])) {
+            $activeOrders[$lid] = ($activeOrders[$lid] ?? 0) + 1;
+            $day = $windowListings[$lid]['day'];
+            $daily[$day]['meals']++;
+            $daily[$day]['recovered'] += $amount;
+        }
+
         $orders[] = [
             'order_id'       => (int) $r['order_id'],
             'order_no'       => (int) $r['order_no'],
@@ -102,12 +138,18 @@ try {
             'order_status'   => $status,
         ];
     }
+    foreach ($windowListings as $lid => $l) {
+        $originalQty = (int) $l['quantity'] + ($activeOrders[$lid] ?? 0);
+        $daily[$l['day']]['items_listed'] += $originalQty;
+        $daily[$l['day']]['at_risk'] += $originalQty * (float) $l['original_price'];
+    }
 
     echo json_encode([
         'success' => true,
         'summary' => $summary,
         'orders'  => $orders,
         'items'   => array_values($items),
+        'daily'   => array_values($daily),
     ]);
 } catch (PDOException $e) {
     error_log('Vendor overview error: ' . $e->getMessage());
