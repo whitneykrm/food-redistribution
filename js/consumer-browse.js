@@ -1,6 +1,8 @@
+// ── Location (geofencing) ──────────────────────────────────────
+// The consumer's position stays in the browser; it is only compared with vendor locations.
 let userLocation = null;           // { lat, lng } once the browser shares it
 let locationState = 'unknown';     // 'unknown' | 'asking' | 'granted' | 'denied'
-let reserveRadiusKm = 5;           
+let reserveRadiusKm = 5;           // replaced by the value from the server
 
 function distanceKm(lat1, lon1, lat2, lon2) {
     const toRad = d => d * Math.PI / 180;
@@ -9,6 +11,8 @@ function distanceKm(lat1, lon1, lat2, lon2) {
               Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
     return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
+
+// Distance from the consumer to a listing's vendor, or null when it can't be worked out
 function listingDistance(l) {
     if (!userLocation || l.latitude == null || l.longitude == null) return null;
     return distanceKm(userLocation.lat, userLocation.lng, Number(l.latitude), Number(l.longitude));
@@ -31,6 +35,9 @@ function requestLocation() {
 function formatKm(km) {
     return km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km';
 }
+
+// Shows the built-in sample listings (from consumer-samples.js) in place of
+// live data. Used when the API returns nothing or fails, so the page is never empty.
 function useSampleListings(message) {
     if (typeof SAMPLE_LISTINGS === 'undefined' || SAMPLE_LISTINGS.length === 0) {
         $('listings-grid').innerHTML = `<p class="empty">${escapeHtml(message)}</p>`;
@@ -115,6 +122,7 @@ function renderListings() {
         const dist = listingDistance(l);
         const needsFence = !l.is_sample && l.latitude != null && l.longitude != null;
 
+        // Reserve button depends on the geofence (samples and vendors without a pin are not restricted)
         let action;
         if (!needsFence) {
             action = `<a href="checkout.html?listing=${encodeURIComponent(l.listings_id)}" class="btn-primary btn-link">Reserve &amp; Generate QR</a>`;
@@ -147,7 +155,8 @@ function renderListings() {
                     <span>${l.quantity} left</span>
                     <span>Expires in ${timeLeft(l.expiry_time)}</span>
                 </div>
-                <div class="address">Pickup: ${escapeHtml(l.address)}</div>
+                <div class="address">Pickup: ${escapeHtml(l.address)}
+                </div>
                 ${dist !== null ? `<div class="distance ${needsFence && dist > reserveRadiusKm ? 'far' : 'near'}">${formatKm(dist)} away${needsFence && dist > reserveRadiusKm ? ` (reserve within ${reserveRadiusKm} km)` : ''}</div>` : ''}
                 ${l.is_sample ? '' : `<div class="redeem-hint">Or redeem for ${l.points_cost} pts</div>`}
                 ${action}
@@ -162,6 +171,7 @@ document.addEventListener('click', (e) => {
     if (btn) requestLocation();
 });
 
+// Ask for the location once the listings are on screen
 window.addEventListener('load', () => {
     if (navigator.geolocation && navigator.permissions && navigator.permissions.query) {
         // Only prompt automatically if the person already allowed it; otherwise wait for the button

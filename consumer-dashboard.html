@@ -16,8 +16,6 @@
     <main class="consumer-container">
 
         <div id="alert-msg" class="flash" style="display: none;"></div>
-
-        <!-- Shared header (always visible) -->
         <div class="page-header">
             <h2 id="page-title">Find Surplus Food</h2>
             <p id="page-subtitle">Reserve discounted food from verified local vendors, then collect it with your QR code.</p>
@@ -32,7 +30,6 @@
                 </select>
                 <select id="filter-sort">
                     <option value="soonest">Expiring soonest</option>
-                    <option value="nearest">Nearest first</option>
                     <option value="price">Lowest price</option>
                     <option value="discount">Biggest discount</option>
                 </select>
@@ -43,10 +40,12 @@
 
         <!-- MY ORDERS -->
         <section id="tab-orders" class="tab-panel" style="display: none;">
-            <p class="results-count" id="orders-summary">Your reservations and claim QR codes.</p>
+            <div class="orders-head">
+                <p class="results-count" id="orders-summary">Your reservations and claim QR codes.</p>
+                <button type="button" class="btn-secondary" id="download-orders">Download my orders</button>
+            </div>
             <div id="orders-list" class="orders-list"><p class="empty">Loading your orders...</p></div>
         </section>
-        
 
         <!-- MY POINTS -->
         <section id="tab-points" class="tab-panel" style="display: none;">
@@ -77,9 +76,9 @@
             <div id="points-activity" class="activity-list"></div>
         </section>
     </main>
-
     <div id="footer-placeholder"></div>
 
+    <!-- Redeem modal (opens from My Points) -->
     <div class="modal-backdrop" id="redeem-modal">
         <div class="modal">
             <h3>Redeem Points</h3>
@@ -104,6 +103,7 @@
         </div>
     </div>
 
+    <!-- Libraries -->
     <script src="js/load-fragment.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
@@ -111,7 +111,7 @@
     <script src="js/consumer-core.js?v=5"></script>
     <script src="js/consumer-samples.js?v=5"></script>
     <script src="js/consumer-browse.js?v=5"></script>
-    <script src="js/consumer-orders.js?v=5"></script>
+    <script src="js/consumer-orders.js?v=7"></script>
     <script src="js/consumer-points.js?v=5"></script>
     <script src="js/consumer-main.js?v=5"></script>
 </body>
