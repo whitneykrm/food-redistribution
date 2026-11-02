@@ -13,7 +13,7 @@ if (!isset($_SESSION['user_id'])) {
 
 try {
     // Only unexpired listings with stock left, from verified vendors
-    $sql = "SELECT l.listings_id, l.item_name, l.category, l.image_path, l.quantity,
+    $sql = "SELECT l.listings_id, l.vendor_id, l.item_name, l.category, l.image_path, l.quantity,
                    l.original_price, l.discounted_price, l.expiry_time,
                    v.business_name, v.city, v.area, v.address, v.latitude, v.longitude,
                    CONCAT(u.firstname, ' ', u.lastname) AS vendor_name
@@ -31,6 +31,7 @@ try {
         $price = (float) $r['discounted_price'];
         return [
             'listings_id'      => (int) $r['listings_id'],
+            'vendor_id'        => (int) $r['vendor_id'],
             'item_name'        => $r['item_name'],
             'category'         => $r['category'],
             'image_path'       => $r['image_path'],

@@ -9,6 +9,7 @@ function distanceKm(lat1, lon1, lat2, lon2) {
               Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
     return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
+
 // Distance from the consumer to a listing's vendor, or null when it can't be worked out
 function listingDistance(l) {
     if (!userLocation || l.latitude == null || l.longitude == null) return null;
@@ -62,12 +63,12 @@ async function loadListings() {
         showListingsError('Failed to load listings.');
     }
 }
-
-// The location filter lists the vendors' areas (Lavington, Westlands...)
+// The location filter lists the vendors' areas (Lavington, Westlands...).
 const placeKey = (s) => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase();
 const listingArea = (l) => (l.area && String(l.area).trim()) || l.city || '';
 
 // Pickup text = road + area ("James Gichuru Road, Lavington"), without repeating the area
+// when the vendor already typed it in the address.
 function pickupText(l) {
     const address = String(l.address || '').trim();
     const area = l.area ? String(l.area).trim() : '';
@@ -143,6 +144,7 @@ function renderListings() {
 
         return `
             <article class="food-card">
+                ${typeof favouriteButton === 'function' ? favouriteButton(l) : ''}
                 ${l.image_path
                     ? `<img class="food-img" src="${escapeHtml(l.image_path)}" alt="${escapeHtml(l.item_name)}" loading="lazy" onerror="this.outerHTML='<div class=&quot;food-img food-img-empty&quot; aria-hidden=&quot;true&quot;>🍽️</div>'">`
                     : `<div class="food-img food-img-empty" aria-hidden="true">🍽️</div>`}

@@ -256,3 +256,41 @@
     gap: 12px;
     flex-wrap: wrap;
 }
+
+/* Favourite eateries */
+.food-card { position: relative; }
+
+.fav-btn {
+    position: absolute;
+    top: 28px;
+    right: 28px;
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    color: #6c757d;
+    font-size: 1.3rem;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    transition: transform 0.15s ease, color 0.15s ease;
+}
+.fav-btn:hover { transform: scale(1.1); color: #dc3545; }
+.fav-btn.is-fav { color: #dc3545; }
+
+.fav-phone-form {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 0 0 18px;
+    padding: 18px 20px;
+    background: var(--fc-white, #fff);
+    border: 1px solid var(--border, #e7e5e4);
+    border-radius: 12px;
+}
+.fav-phone-form > div { flex: 1; min-width: 240px; }
+.fav-phone-form input { max-width: 320px; }
+.fav-phone-form .results-count { margin-top: 6px; }

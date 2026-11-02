@@ -1,5 +1,7 @@
+// #browse, #favourites, #orders, #points
 const SECTION_HEADERS = {
     browse: ['Find Surplus Food', 'Reserve discounted food from verified local vendors, then collect it with your QR code.'],
+    favourites: ['My Favourite Eateries', 'Get an SMS when your favourite eateries post new surplus food.'],
     orders: ['My Orders', 'Track your reservations and show your QR code when you collect.'],
     points: ['My Points', 'Earn points on every meal you collect, then redeem them for surplus food.']
 };
@@ -17,6 +19,8 @@ function activateTab(name) {
 }
 
 window.addEventListener('hashchange', () => activateTab(location.hash.slice(1)));
+
+// ── Click actions on cards ─────────────────────────────────────
 document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-action]');
     if (!btn || btn.disabled) return;
@@ -33,9 +37,13 @@ document.addEventListener('click', (e) => {
         cancelOrder(id);
     }
 });
+
+// ── Filters ────────────────────────────────────────────────────
 $('filter-search').addEventListener('input', renderListings);
 $('filter-city').addEventListener('change', renderListings);
 $('filter-sort').addEventListener('change', renderListings);
+
+// ── Modal buttons (null-safe: a missing modal won't break the page) 
 function closeAllModals() {
     document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('open'));
 }
@@ -50,10 +58,13 @@ onClick('redeem-confirm', confirmRedemption);
 onClick('redeem-cancel', closeAllModals);
 onClick('qr-close', closeAllModals);
 
+// Clicking the dark backdrop or pressing Escape closes any open modal
 document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeAllModals(); });
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAllModals(); });
+
+// ── Start ──────────────────────────────────────────────────────
 (async () => {
     loadFragment('navbar-placeholder', 'includes/navbar.html');
     loadFragment('footer-placeholder', 'includes/footer.html');
@@ -63,6 +74,8 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAllMo
 
     renderPoints();
     activateTab(location.hash.slice(1));   // open the tab from the URL (defaults to browse)
-    await Promise.all([loadListings(), loadOrders()]);
+    await Promise.all([loadListings(), loadOrders(), loadFavourites()]);
+
+    // Keep "expires in" labels fresh and drop listings that expire while the page is open
     setInterval(() => { renderListings(); renderRedeem(); }, 60000);
 })();

@@ -16,6 +16,8 @@
     <main class="consumer-container">
 
         <div id="alert-msg" class="flash" style="display: none;"></div>
+
+        <!-- Shared header (always visible) -->
         <div class="page-header">
             <h2 id="page-title">Find Surplus Food</h2>
             <p id="page-subtitle">Reserve discounted food from verified local vendors, then collect it with your QR code.</p>
@@ -26,7 +28,7 @@
             <div class="filters">
                 <input type="text" id="filter-search" placeholder="Search food or vendor...">
                 <select id="filter-city">
-                    <option value="">All pickup locations</option>
+                    <option value="">All locations</option>
                 </select>
                 <select id="filter-sort">
                     <option value="soonest">Expiring soonest</option>
@@ -36,6 +38,19 @@
             </div>
             <p class="results-count" id="results-count"></p>
             <div id="listings-grid" class="grid"><p class="empty">Loading listings...</p></div>
+        </section>
+
+        <!-- MY FAVOURITES -->
+        <section id="tab-favourites" class="tab-panel" style="display: none;">
+            <form class="fav-phone-form" id="fav-phone-form">
+                <div>
+                    <label for="fav-phone">Phone number for SMS alerts</label>
+                    <input type="tel" id="fav-phone" placeholder="e.g. 0712345678" autocomplete="tel">
+                    <p class="results-count" id="fav-phone-note"></p>
+                </div>
+                <button type="submit" class="btn-secondary">Save number</button>
+            </form>
+            <div id="favourites-list" class="orders-list"><p class="empty">Loading your favourites...</p></div>
         </section>
 
         <!-- MY ORDERS -->
@@ -76,6 +91,8 @@
             <div id="points-activity" class="activity-list"></div>
         </section>
     </main>
+
+    <!-- Dynamic Footer Placeholder -->
     <div id="footer-placeholder"></div>
 
     <!-- Redeem modal (opens from My Points) -->
@@ -109,9 +126,10 @@
 
     <!-- Consumer dashboard scripts (order matters: core first, main last) -->
     <script src="js/consumer-core.js?v=5"></script>
-    <script src="js/consumer-browse.js?v=5"></script>
+    <script src="js/consumer-favourites.js?v=1"></script>
+    <script src="js/consumer-browse.js?v=8"></script>
     <script src="js/consumer-orders.js?v=7"></script>
     <script src="js/consumer-points.js?v=5"></script>
-    <script src="js/consumer-main.js?v=5"></script>
+    <script src="js/consumer-main.js?v=8"></script>
 </body>
 </html>

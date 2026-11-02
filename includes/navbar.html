@@ -41,6 +41,8 @@
             <a href="index.html">Home</a>
             <a href="about.html">About</a>
         </div>
+
+        <!-- Dynamic Auth Action (Login / Logout only) -->
         <div class="navbar-user" id="navbar-user">
             <a href="login.html" id="auth-action-btn" class="btn-nav-login">Login</a>
         </div>
@@ -129,6 +131,7 @@
                 `;
             } else {
                 // Consumer: Home, About, Browse Listings, My Orders, My Points.
+                // The three dashboard links switch sections using the URL hash.
                 const hashTab = () => (window.location.hash || '#browse').replace('#', '');
                 const activeTab = () => currentPage === 'consumer-dashboard.html' ? hashTab()
                                       : currentPage === 'checkout.html' ? 'browse' : '';
@@ -139,6 +142,7 @@
                     <a href="index.html" class="${isActive('index.html')}">Home</a>
                     <a href="about.html" class="${isActive('about.html')}">About</a>
                     ${tabLink('browse', 'Browse Listings')}
+                    ${tabLink('favourites', 'Favourites')}
                     ${tabLink('orders', 'My Orders')}
                     ${tabLink('points', 'My Points')}
                 `;
