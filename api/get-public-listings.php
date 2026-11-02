@@ -3,6 +3,8 @@ header('Content-Type: application/json');
 session_start();
 require_once '../includes/db.php';
 require_once '../includes/geofence.php';
+
+// Any signed-in user can browse listings (the dashboard redirects to login on 401)
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Not authenticated']);
@@ -13,7 +15,7 @@ try {
     // Only unexpired listings with stock left, from verified vendors
     $sql = "SELECT l.listings_id, l.item_name, l.category, l.image_path, l.quantity,
                    l.original_price, l.discounted_price, l.expiry_time,
-                   v.business_name, v.city, v.address, v.latitude, v.longitude,
+                   v.business_name, v.city, v.area, v.address, v.latitude, v.longitude,
                    CONCAT(u.firstname, ' ', u.lastname) AS vendor_name
             FROM listings l
             JOIN vendor v ON v.vendor_id = l.vendor_id
@@ -39,6 +41,7 @@ try {
             'business_name'    => $r['business_name'],
             'vendor_name'      => $r['vendor_name'],
             'city'             => $r['city'],
+            'area'             => $r['area'],
             'address'          => $r['address'],
             'latitude'         => $r['latitude']  !== null ? (float) $r['latitude']  : null,
             'longitude'        => $r['longitude'] !== null ? (float) $r['longitude'] : null,

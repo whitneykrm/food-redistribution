@@ -18,7 +18,9 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
     try {
-        $stmt = $pdo->prepare("SELECT vendor_id, business_name, city, address, latitude, longitude, verification_status FROM vendor WHERE user_id = :user_id LIMIT 1");
+        // NOTE: table is `vendor` (singular) — this was the bug causing a
+        // "table doesn't exist" error on this endpoint.
+        $stmt = $pdo->prepare("SELECT vendor_id, business_name, city, area, address, latitude, longitude, verification_status FROM vendor WHERE user_id = :user_id LIMIT 1");
         $stmt->execute(['user_id' => $userId]);
         $vendor = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -44,11 +46,12 @@ if ($method === 'POST') {
 
     $businessName = trim($input['business_name'] ?? '');
     $city         = trim($input['city'] ?? '');
+    $area         = trim($input['area'] ?? '');
     $address      = trim($input['address'] ?? '');
     $latitude     = $input['latitude'] ?? null;
     $longitude    = $input['longitude'] ?? null;
 
-    if ($businessName === '' || $city === '' || $address === '') {
+    if ($businessName === '' || $city === '' || $area === '' || $address === '') {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'All fields are required.']);
         exit();
@@ -64,19 +67,21 @@ if ($method === 'POST') {
     $longitude = round((float) $longitude, 6);
 
     try {
+        // Check for an existing row first 
         $lookup = $pdo->prepare('SELECT vendor_id FROM vendor WHERE user_id = :user_id LIMIT 1');
         $lookup->execute(['user_id' => $userId]);
         $existing = $lookup->fetch(PDO::FETCH_ASSOC);
 
         if ($existing) {
             $update = $pdo->prepare(
-                'UPDATE vendor SET business_name = :business_name, city = :city, address = :address,
+                'UPDATE vendor SET business_name = :business_name, city = :city, area = :area, address = :address,
                                    latitude = :latitude, longitude = :longitude
                  WHERE vendor_id = :vendor_id'
             );
             $update->execute([
                 'business_name' => $businessName,
                 'city'          => $city,
+                'area'          => $area,
                 'address'       => $address,
                 'latitude'      => $latitude,
                 'longitude'     => $longitude,
@@ -84,13 +89,14 @@ if ($method === 'POST') {
             ]);
         } else {
             $insert = $pdo->prepare(
-                "INSERT INTO vendor (user_id, business_name, city, address, latitude, longitude, verification_status)
-                 VALUES (:user_id, :business_name, :city, :address, :latitude, :longitude, 'pending')"
+                "INSERT INTO vendor (user_id, business_name, city, area, address, latitude, longitude, verification_status)
+                 VALUES (:user_id, :business_name, :city, :area, :address, :latitude, :longitude, 'pending')"
             );
             $insert->execute([
                 'user_id'       => $userId,
                 'business_name' => $businessName,
                 'city'          => $city,
+                'area'          => $area,
                 'address'       => $address,
                 'latitude'      => $latitude,
                 'longitude'     => $longitude,

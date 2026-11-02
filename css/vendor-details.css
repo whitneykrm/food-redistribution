@@ -1,4 +1,4 @@
-
+/* Saved details (read-only view) */
 .profile-details { margin: 0 0 20px; }
 .profile-details dt { font-size: .85rem; color: var(--grey); margin-top: 14px; }
 .profile-details dd { margin: 4px 0 0; font-size: 1.05rem; font-weight: 600; }
@@ -26,3 +26,10 @@
 .btn-locate:hover { background: #eef3fb; }
 .map-status { font-size: 0.85rem; font-weight: 600; color: #155724; }
 .map-hint { font-size: 0.85rem; color: #6c757d; margin-top: 6px; }
+
+.field-hint {
+    display: block;
+    margin-top: 4px;
+    color: var(--fc-muted, #6c757d);
+    font-size: 0.8rem;
+}

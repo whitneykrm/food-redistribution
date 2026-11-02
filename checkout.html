@@ -6,6 +6,7 @@
     <title>Checkout - Food Connect</title>
     <link rel="icon" href="images/logo.svg" type="image/svg+xml">
     <link rel="icon" href="images/favicon.ico" sizes="any">
+    <!-- Main brand stylesheet first, then checkout styles -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/checkout.css">
 </head>
@@ -16,6 +17,8 @@
     <div class="card">
         <h2>Confirm Order &amp; Pay</h2>
         <p class="subtitle">Reserve your item and pay when you collect it</p>
+
+        <!-- Filled in from the listing chosen on the dashboard -->
         <div class="order-summary" id="order-summary">
             <p>Loading your order...</p>
         </div>
@@ -43,11 +46,18 @@
     </div>
 
     <script src="js/load-fragment.js"></script>
-    <script src="js/consumer-samples.js?v=4"></script>
     <script>
         loadFragment('navbar-placeholder', 'includes/navbar.html');
 
         const params = new URLSearchParams(window.location.search);
+        // road + area, without repeating the area if the address already contains it
+        function pickupText(l) {
+            const address = String(l.address || '').trim();
+            const area = l.area ? String(l.area).trim() : '';
+            if (!area || address.toLowerCase().includes(area.toLowerCase())) return address;
+            return address ? address + ', ' + area : area;
+        }
+
         const listingId = params.get('listing');
         let listing = null;
 
@@ -72,7 +82,7 @@
                 ${listing.image_path ? `<img src="${esc(listing.image_path)}" alt="${esc(listing.item_name)}" onerror="this.style.display='none'" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin-bottom:12px;">` : ''}
                 <p><strong>Item:</strong> ${esc(listing.item_name)}</p>
                 <p><strong>Vendor:</strong> ${esc(listing.vendor_name || listing.business_name)}</p>
-                <p><strong>Pickup:</strong> ${esc(listing.business_name)}, ${esc(listing.address)}</p>
+                <p><strong>Pickup:</strong> ${esc(listing.business_name)}, ${esc(pickupText(listing))}</p>
                 <p><strong>Amount Due:</strong> KES ${money(listing.discounted_price)}</p>`;
             $('checkout-form').style.display = 'block';
         }
@@ -80,14 +90,6 @@
         async function loadListing() {
             if (!listingId) {
                 showProblem('No item was selected. Please pick one from the listings.');
-                return;
-            }
-            // Sample listings live in the browser only, so they never go to the server
-            if (String(listingId).startsWith('sample-')) {
-                listing = (typeof SAMPLE_LISTINGS !== 'undefined' ? SAMPLE_LISTINGS : [])
-                    .find(l => l.listings_id === listingId);
-                if (!listing) { showProblem('This sample listing is no longer available.'); return; }
-                showListing();
                 return;
             }
             try {
@@ -121,21 +123,6 @@
             // Wording shown on the confirmation page
             const methodLabel = method === 'Cash' ? 'Cash on Collection' : 'M-Pesa on Collection';
 
-            if (listing.is_sample) {
-                const bytes = crypto.getRandomValues(new Uint8Array(16));
-                const code = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-                sessionStorage.setItem('demoReservation', JSON.stringify({
-                    order_id: 'DEMO-' + Math.floor(100000 + Math.random() * 900000),
-                    qr_code: code,
-                    item_name: listing.item_name,
-                    business_name: listing.business_name,
-                    city: listing.city,
-                    payment_method: methodLabel
-                }));
-                window.location.href = 'consumer-qr.html?demo=1';
-                return;
-            }
-
             const btn = $('submit-btn');
             btn.disabled = true;
             btn.textContent = 'Checking your location...';
@@ -162,6 +149,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         listing_id: listing.listings_id,
+                        // reserve-listing.php accepts exactly 'M-Pesa' or 'cash'
                         payment_method: method === 'Cash' ? 'cash' : 'M-Pesa',
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude
@@ -171,7 +159,7 @@
                 const result = await res.json();
 
                 if (result.success) {
-                    
+                    // Remember what was just ordered so the next page can show it
                     sessionStorage.setItem('lastReservation', JSON.stringify({
                         order_id: result.order_id,
                         item_name: listing.item_name,

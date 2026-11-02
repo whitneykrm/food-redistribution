@@ -1,5 +1,3 @@
-// ── Location (geofencing) ──────────────────────────────────────
-// The consumer's position stays in the browser; it is only compared with vendor locations.
 let userLocation = null;           // { lat, lng } once the browser shares it
 let locationState = 'unknown';     // 'unknown' | 'asking' | 'granted' | 'denied'
 let reserveRadiusKm = 5;           // replaced by the value from the server
@@ -11,7 +9,6 @@ function distanceKm(lat1, lon1, lat2, lon2) {
               Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
     return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
-
 // Distance from the consumer to a listing's vendor, or null when it can't be worked out
 function listingDistance(l) {
     if (!userLocation || l.latitude == null || l.longitude == null) return null;
@@ -36,17 +33,11 @@ function formatKm(km) {
     return km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km';
 }
 
-// Shows the built-in sample listings (from consumer-samples.js) in place of
-// live data. Used when the API returns nothing or fails, so the page is never empty.
-function useSampleListings(message) {
-    if (typeof SAMPLE_LISTINGS === 'undefined' || SAMPLE_LISTINGS.length === 0) {
-        $('listings-grid').innerHTML = `<p class="empty">${escapeHtml(message)}</p>`;
-        return;
-    }
-    allListings = [...SAMPLE_LISTINGS];
-    populateCities();
-    renderListings();
-    renderRedeem();
+// Shown when the listings could not be loaded
+function showListingsError(message) {
+    allListings = [];
+    $('listings-grid').innerHTML = `<p class="empty">${escapeHtml(message)}</p>`;
+    $('results-count').textContent = '';
 }
 
 async function loadListings() {
@@ -57,30 +48,46 @@ async function loadListings() {
         const data = await res.json();
 
         if (!data.success) {
-            useSampleListings(data.message || 'Failed to load listings.');
+            showListingsError(data.message || 'Failed to load listings.');
             return;
         }
 
-        // Real listings first, then the samples
-        const samples = (typeof SAMPLE_LISTINGS !== 'undefined') ? SAMPLE_LISTINGS : [];
         reserveRadiusKm = data.reserve_radius_km || reserveRadiusKm;
-        allListings = [...(data.listings || []), ...samples];
+        allListings = data.listings || [];
         populateCities();
         renderListings();
         renderRedeem();
     } catch (err) {
         console.error('Error loading listings:', err);
-        useSampleListings('Failed to load listings.');
+        showListingsError('Failed to load listings.');
     }
+}
+
+// The location filter lists the vendors' areas (Lavington, Westlands...)
+const placeKey = (s) => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase();
+const listingArea = (l) => (l.area && String(l.area).trim()) || l.city || '';
+
+// Pickup text = road + area ("James Gichuru Road, Lavington"), without repeating the area
+function pickupText(l) {
+    const address = String(l.address || '').trim();
+    const area = l.area ? String(l.area).trim() : '';
+    if (!area) return address;
+    if (placeKey(address).includes(placeKey(area))) return address;
+    return address ? address + ', ' + area : area;
 }
 
 function populateCities() {
     const select = $('filter-city');
     const current = select.value;
-    const cities = [...new Set(allListings.map(l => l.city).filter(Boolean))].sort();
+    const places = new Map();
+    allListings.forEach(l => {
+        const key = placeKey(listingArea(l));
+        if (key && !places.has(key)) places.set(key, String(listingArea(l)).trim());
+    });
+    const sorted = [...places.entries()].sort((a, b) => a[1].localeCompare(b[1]));
     select.innerHTML = '<option value="">All locations</option>' +
-        cities.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-    select.value = cities.includes(current) ? current : '';
+        sorted.map(([key, label]) => `<option value="${escapeHtml(key)}">${escapeHtml(label)}</option>`).join('');
+    select.value = places.has(current) ? current : '';
 }
 
 function renderListings() {
@@ -92,7 +99,7 @@ function renderListings() {
 
     const items = allListings.filter(l => {
         if (parseDate(l.expiry_time) <= now) return false;
-        if (city && l.city !== city) return false;
+        if (city && placeKey(listingArea(l)) !== city) return false;
         if (search && !(l.item_name.toLowerCase().includes(search) || l.business_name.toLowerCase().includes(search))) return false;
         return true;
     });
@@ -141,7 +148,7 @@ function renderListings() {
                     : `<div class="food-img food-img-empty" aria-hidden="true">🍽️</div>`}
                 <div class="vendor-line">
                     <strong>${escapeHtml(l.business_name)}</strong>
-                    <span>${escapeHtml(l.city)}</span>
+                    <span>${escapeHtml(listingArea(l))}</span>
                 </div>
                 <h3 class="item-name">${escapeHtml(l.item_name)}</h3>
                 <div class="price-row">
@@ -155,7 +162,7 @@ function renderListings() {
                     <span>${l.quantity} left</span>
                     <span>Expires in ${timeLeft(l.expiry_time)}</span>
                 </div>
-                <div class="address">Pickup: ${escapeHtml(l.address)}
+                <div class="address">Pickup: ${escapeHtml(pickupText(l))}
                 </div>
                 ${dist !== null ? `<div class="distance ${needsFence && dist > reserveRadiusKm ? 'far' : 'near'}">${formatKm(dist)} away${needsFence && dist > reserveRadiusKm ? ` (reserve within ${reserveRadiusKm} km)` : ''}</div>` : ''}
                 ${l.is_sample ? '' : `<div class="redeem-hint">Or redeem for ${l.points_cost} pts</div>`}
@@ -163,8 +170,6 @@ function renderListings() {
             </article>`;
     }).join('');
 }
-
-
 // "Share location to reserve" button on a card
 document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-action="locate"]');

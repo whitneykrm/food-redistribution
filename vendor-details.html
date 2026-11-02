@@ -11,14 +11,20 @@
     <link rel="stylesheet" href="css/vendor-details.css">
 </head>
 <body>
+
+    <!-- Dynamic Header/Nav Placeholder -->
     <div id="navbar-placeholder"></div>
+
+    <!-- REGISTRATION CARD CONTAINER -->
     <main class="container">
         <div class="card" style="margin: 40px auto; max-width: 500px;">
             <h2>Vendor Profile</h2>
             <p class="subtitle" id="page-subtitle">Complete your business and location details</p>
 
+            <!-- Alert Banner for Feedback -->
             <div id="alert-msg" style="display: none; padding: 10px; margin-bottom: 15px; border-radius: 4px;"></div>
 
+            <!-- Read-only view, shown once the vendor has a saved profile -->
             <div id="profile-view" style="display: none;">
                 <dl class="profile-details">
                     <dt>Business Name</dt>
@@ -29,6 +35,9 @@
 
                     <dt>City</dt>
                     <dd id="view-city"></dd>
+
+                    <dt>Area</dt>
+                    <dd id="view-area"></dd>
 
                     <dt>Location / Address</dt>
                     <dd id="view-address"></dd>
@@ -57,8 +66,25 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="area">Area</label>
+                    <input type="text" id="area" name="area" list="area-options" placeholder="e.g. Lavington" required>
+                    <datalist id="area-options">
+                        <option value="Westlands"><option value="Kilimani"><option value="Lavington">
+                        <option value="Kileleshwa"><option value="Parklands"><option value="Eastleigh">
+                        <option value="CBD"><option value="Upper Hill"><option value="Hurlingham">
+                        <option value="Karen"><option value="Langata"><option value="Runda">
+                        <option value="Muthaiga"><option value="Gigiri"><option value="Kasarani">
+                        <option value="Roysambu"><option value="Ruaka"><option value="South B">
+                        <option value="South C"><option value="Embakasi"><option value="Buruburu">
+                        <option value="Donholm"><option value="Riverside"><option value="Spring Valley">
+                        <option value="Valley Arcade"><option value="Loresho"><option value="Kitisuru">
+                    </datalist>
+                    <small class="field-hint">The neighbourhood consumers will filter by.</small>
+                </div>
+
+                <div class="form-group">
                     <label for="address">Location / Address</label>
-                    <input type="text" id="address" name="address" placeholder="e.g. 123 Commercial Street, Kilimani" required>
+                    <input type="text" id="address" name="address" placeholder="e.g. James Gichuru Road, next to the petrol station" required>
                 </div>
 
                 <div class="form-group">
@@ -81,6 +107,8 @@
             </form>
         </div>
     </main>
+
+    <!-- Dynamic Footer Placeholder -->
     <div id="footer-placeholder"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -153,6 +181,7 @@
             const v = currentProfile;
             document.getElementById('view-businessname').textContent = v.business_name || '';
             document.getElementById('view-city').textContent = v.city || '';
+            document.getElementById('view-area').textContent = v.area || '';
             document.getElementById('view-address').textContent = v.address || '';
             document.getElementById('view-pin').textContent = (v.latitude != null && v.longitude != null)
                 ? 'Pinned (' + Number(v.latitude).toFixed(4) + ', ' + Number(v.longitude).toFixed(4) + ')'
@@ -176,6 +205,7 @@
 
             document.getElementById('businessname').value = v?.business_name || '';
             document.getElementById('city').value = v?.city || '';
+            document.getElementById('area').value = v?.area || '';
             document.getElementById('address').value = v?.address || '';
             document.getElementById('verificationstatus').value = formatStatus(v?.verification_status);
 
@@ -296,6 +326,7 @@
             const payload = {
                 business_name: document.getElementById('businessname').value.trim(),
                 city: document.getElementById('city').value.trim(),
+                area: document.getElementById('area').value.trim(),
                 address: document.getElementById('address').value.trim(),
                 latitude: pin.lat,
                 longitude: pin.lng
