@@ -17,7 +17,7 @@
         <div id="alert-msg" style="display: none; padding: 12px 16px; margin-bottom: 20px; border-radius: 6px; font-weight: 500;"></div>
 
         <div class="dashboard-header" style="justify-content: flex-end;">
-            <button onclick="alert('Opening QR Camera Scanner...')" class="btn-scan">Scan Consumer QR</button>
+            <button type="button" id="open-scan" class="btn-scan">Scan Consumer QR</button>
         </div>
 
         <!-- DASHBOARD -->
@@ -139,6 +139,33 @@
         </div>
         </section>
     </div>
+    <!-- SCAN CONSUMER QR -->
+    <div class="edit-backdrop" id="scan-modal">
+        <div class="edit-modal scan-modal">
+            <h3>Scan Consumer QR</h3>
+
+            <div id="scan-camera">
+                <div id="qr-reader"></div>
+                <p class="muted" id="scan-camera-note">Point the camera at the consumer's QR code.</p>
+            </div>
+
+            <form id="scan-manual" class="scan-manual">
+                <label for="scan-code">Or type the code shown under their QR</label>
+                <div class="scan-manual-row">
+                    <input type="text" id="scan-code" placeholder="e.g. 3f9a1c0d..." autocomplete="off">
+                    <button type="submit" class="btn-submit" id="scan-verify">Verify</button>
+                </div>
+            </form>
+
+            <div id="scan-result" class="scan-result" style="display: none;"></div>
+
+            <div class="edit-actions">
+                <button type="button" class="edit-cancel" id="scan-again" style="display: none;">Scan another</button>
+                <button type="button" class="edit-cancel" id="scan-close">Close</button>
+            </div>
+        </div>
+    </div>
+
     <div class="edit-backdrop" id="edit-modal">
         <form class="edit-modal" id="edit-listing-form">
             <h3>Edit Listing</h3>
@@ -193,6 +220,7 @@
     <div id="footer-placeholder"></div>
 
     <script src="js/load-fragment.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <script>
         loadFragment('nav-placeholder', 'includes/navbar.html');
         loadFragment('footer-placeholder', 'includes/footer.html');
@@ -297,6 +325,7 @@
                 currentListings = data.listings;
 
                 // Each vendor's listings are numbered 1, 2, 3... in the order they were added.
+                // (The shared database id is still used behind the scenes for Edit and Delete.)
                 const listingNo = {};
                 [...data.listings]
                     .sort((a, b) => Number(a.listings_id || a.id) - Number(b.listings_id || b.id))
@@ -711,5 +740,6 @@
         fetchListings();
         loadOverview();
     </script>
+    <script src="js/vendor-scan.js?v=1"></script>
 </body>
 </html>
