@@ -1,0 +1,6 @@
+# Composer libraries (anyone can reinstall them with: composer install)
+vendor/
+
+# Secrets: never commit these
+includes/mail-config.php
+includes/sms-config.php

@@ -21,6 +21,7 @@ function notifyFavouriteConsumers(PDO $pdo, int $vendorId, array $listing): arra
         );
         $stmt->execute([$vendorId]);
         $people = $stmt->fetchAll(PDO::FETCH_ASSOC);
+       
         if (!$people) { return $result; }
 
         $item = mb_strlen($listing['item_name']) > 30

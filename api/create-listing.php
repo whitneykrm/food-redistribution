@@ -85,6 +85,7 @@ try {
     ]);
 
     $message = 'Listing added successfully';
+    
     if ($notified['sent'] > 0) {
         $message .= '. ' . $notified['sent'] . ' favourite customer' . ($notified['sent'] === 1 ? '' : 's') . ' notified by SMS.';
     }

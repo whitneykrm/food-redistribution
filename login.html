@@ -73,6 +73,9 @@
                                 aria-label="Show password" aria-pressed="false">Show</button>
                     </div>
                     <small class="error-text" id="passwordError"></small>
+                    <p style="text-align: right; margin: 6px 0 0; font-size: 0.9rem;">
+                        <a href="forgot-password.html">Forgot password?</a>
+                    </p>
                 </div>
 
                 <button type="submit" class="btn-submit" id="submitBtn">Sign In</button>
@@ -157,6 +160,8 @@
             clearError(passwordInput, passwordError);
             return true;
         }
+
+        // Show / hide the password
         const togglePassword = document.getElementById('togglePassword');
         togglePassword.addEventListener('click', () => {
             const show = passwordInput.type === 'password';
@@ -204,6 +209,7 @@
                 const data = await response.json();
 
                 if (response.ok && data.success) {
+                    // Redirect according to user role or API instruction
                     const defaultRedirect = data.data?.role === 'vendor' ? 'vendor-dashboard.html' :
                                            data.data?.role === 'admin' ? 'admin-dashboard.html' : 'consumer-dashboard.html';
                     

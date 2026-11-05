@@ -1,13 +1,9 @@
 <?php
-// Copy this file to includes/sms-config.php and fill it in.
 return [
     'enabled'   => true,
-
-    // Africa's Talking: https://account.africastalking.com
-    'username'  => 'sandbox',
-    'api_key'   => 'PASTE_YOUR_API_KEY_HERE',
-    'sandbox'   => true,
-
-    // Leave empty to use Africa's Talking's shared sender; or put an approved sender ID
-    'sender_id' => '',
+    'username'  => 'food-connect',
+    'api_key'   => 'atsk_b3052b103d4731df72e3baaa1857ba794b549fb5c7af149587c0919a6ea9383dbcd4bc81',
+    'sandbox'   => false,
+    'sender_id' => '',      // leave empty, a custom sender ID needs separate approval
+    'debug'     => false,
 ];

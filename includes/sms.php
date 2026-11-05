@@ -35,26 +35,72 @@ function logSms(PDO $pdo, ?int $userId, string $phone, string $message, string $
     }
 }
 
+
 // Sends one SMS. Returns ['ok' => bool, 'status' => string, 'raw' => string].
 function sendSms(PDO $pdo, ?int $userId, string $phone, string $message): array
 {
     $config = smsConfig();
+
     if (!$config || empty($config['enabled'])) {
         return ['ok' => false, 'status' => 'disabled', 'raw' => 'SMS is not configured (includes/sms-config.php).'];
     }
 
+    // --- Credential checks ---------------------------------------------
+    $username  = trim((string) ($config['username'] ?? ''));
+    $apiKey    = trim((string) ($config['api_key'] ?? ''));
+    $isSandbox = !empty($config['sandbox']);
+    $senderId  = trim((string) ($config['sender_id'] ?? ''));
+
+    $configError = null;
+    if ($username === '') {
+        $configError = 'Username is empty.';
+    } elseif ($apiKey === '') {
+        $configError = 'API key is empty.';
+    } elseif ($isSandbox && $username !== 'sandbox') {
+        $configError = "Sandbox mode requires username 'sandbox' (got '{$username}').";
+    } elseif (!$isSandbox && $username === 'sandbox') {
+        $configError = "Username 'sandbox' only works with sandbox mode enabled.";
+    } elseif (preg_match('/\s/', $apiKey)) {
+        $configError = 'API key contains whitespace - re-copy it from the dashboard.';
+    }
+
+    if ($configError !== null) {
+        logSms($pdo, $userId, (string) $phone, $message, 'config_error', $configError);
+        return ['ok' => false, 'status' => 'config_error', 'raw' => $configError];
+    }
+
+    // --- Phone number ---------------------------------------------------
     $number = normalizeKenyanPhone($phone);
+
     if ($number === null) {
         logSms($pdo, $userId, (string) $phone, $message, 'invalid_number', 'Not a valid Kenyan mobile number');
         return ['ok' => false, 'status' => 'invalid_number', 'raw' => 'Invalid phone number'];
     }
 
-    $url = !empty($config['sandbox'])
+    $url = $isSandbox
         ? 'https://api.sandbox.africastalking.com/version1/messaging'
         : 'https://api.africastalking.com/version1/messaging';
 
-    $fields = ['username' => $config['username'], 'to' => $number, 'message' => $message];
-    if (!empty($config['sender_id'])) { $fields['from'] = $config['sender_id']; }
+    // --- Optional debug logging (set 'debug' => true in sms-config.php) --
+    if (!empty($config['debug'])) {
+        error_log(sprintf(
+            'AT DEBUG: config_file=%s mode=%s user=[%s] key_len=%d key=%s...%s url=%s to=%s',
+            (new ReflectionFunction('smsConfig'))->getFileName(),
+            $isSandbox ? 'sandbox' : 'live',
+            $username,
+            strlen($apiKey),
+            substr($apiKey, 0, 4),
+            substr($apiKey, -4),
+            $url,
+            $number
+        ));
+    }
+
+    // --- Send -----------------------------------------------------------
+    $fields = ['username' => $username, 'to' => $number, 'message' => $message];
+    if ($senderId !== '') {
+        $fields['from'] = $senderId;
+    }
 
     $ch = curl_init($url);
     curl_setopt_array($ch, [
@@ -63,7 +109,7 @@ function sendSms(PDO $pdo, ?int $userId, string $phone, string $message): array
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT        => 15,
         CURLOPT_HTTPHEADER     => [
-            'apiKey: ' . $config['api_key'],
+            'apiKey: ' . $apiKey,
             'Accept: application/json',
             'Content-Type: application/x-www-form-urlencoded',
         ],
@@ -78,10 +124,26 @@ function sendSms(PDO $pdo, ?int $userId, string $phone, string $message): array
         return ['ok' => false, 'status' => 'failed', 'raw' => $error];
     }
 
-    $json = json_decode($body, true);
+    // --- Auth failure (401 comes back as plain text, not JSON) ----------
+    if ($http === 401 || stripos($body, 'authentication is invalid') !== false) {
+        $detail = sprintf(
+            'Auth rejected (HTTP %d, %s mode, user [%s], key ...%s): %s',
+            $http,
+            $isSandbox ? 'sandbox' : 'live',
+            $username,
+            substr($apiKey, -4),
+            trim($body)
+        );
+        error_log('AT ' . $detail);
+        logSms($pdo, $userId, $number, $message, 'auth_failed', $detail);
+        return ['ok' => false, 'status' => 'auth_failed', 'raw' => $detail];
+    }
+
+    // --- Normal response ------------------------------------------------
+    $json      = json_decode($body, true);
     $recipient = $json['SMSMessageData']['Recipients'][0] ?? null;
-    $ok = $http >= 200 && $http < 300 && $recipient && (($recipient['status'] ?? '') === 'Success');
-    $status = $ok ? 'sent' : 'failed';
+    $ok        = $http >= 200 && $http < 300 && $recipient && (($recipient['status'] ?? '') === 'Success');
+    $status    = $ok ? 'sent' : 'failed';
 
     logSms($pdo, $userId, $number, $message, $status, $body);
     return ['ok' => $ok, 'status' => $status, 'raw' => $body];
