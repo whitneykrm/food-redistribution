@@ -4,3 +4,18 @@ vendor/
 # Secrets: never commit these
 includes/mail-config.php
 includes/sms-config.php
+includes/mpesa-config.php
+
+# Temporary test and setup pages
+test-sms.php
+setup-admin.php
+
+# Logs
+*.log
+error_log
+
+# Editor and system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -95,7 +95,7 @@ try {
         exit();
     }
 
-    $pdo->prepare("UPDATE orders SET order_status = 'collected' WHERE order_id = ? AND order_status = 'reserved'")
+    $pdo->prepare("UPDATE orders SET order_status = 'collected', collected_at = NOW() WHERE order_id = ? AND order_status = 'reserved'")
         ->execute([$order['order_id']]);
     $pdo->commit();
 

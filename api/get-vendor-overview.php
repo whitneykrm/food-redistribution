@@ -24,9 +24,9 @@ try {
 
     $paidValue = paidStatusValue($pdo);
 
-    // Last 7 days (oldest first) for the waste-recovery graph.
+    // Last 30 days (oldest first) for the waste-recovery graph (the page can show 7 or 30).
     $daily = [];
-    for ($i = 6; $i >= 0; $i--) {
+    for ($i = 29; $i >= 0; $i--) {
         $ts  = strtotime("-$i day");
         $key = date('Y-m-d', $ts);
         $daily[$key] = [
@@ -40,6 +40,7 @@ try {
     // Every order placed on this vendor's listings
     $stmt = $pdo->prepare(
         "SELECT o.order_id, o.order_status,
+                COALESCE(o.collected_at, o.created_at) AS collected_on,
                 l.listings_id, l.item_name,
                 u.firstname, u.lastname,
                 p.amount, p.payment_method, p.payment_status,
@@ -91,6 +92,20 @@ try {
     $items  = [];
     $orders = [];
 
+    // M-Pesa receipt numbers of orders paid through a prompt (ignored if the table does not exist yet)
+    $receipts = [];
+    try {
+        $stmt = $pdo->prepare(
+            "SELECT t.order_id, t.mpesa_receipt
+             FROM mpesa_transactions t
+             JOIN payment p ON p.order_id = t.order_id
+             WHERE p.vendor_id = ? AND t.status = 'success' AND t.mpesa_receipt IS NOT NULL
+             ORDER BY t.mpesa_id"
+        );
+        $stmt->execute([$vendorId]);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $t) { $receipts[(int) $t['order_id']] = $t['mpesa_receipt']; }
+    } catch (PDOException $e) { /* mpesa.sql not run yet */ }
+
     foreach ($rows as $r) {
         $status = $r['order_status'];
         $amount = (float) ($r['amount'] ?? 0);
@@ -121,9 +136,15 @@ try {
         $lid = (int) $r['listings_id'];
         if ($status !== 'cancelled' && isset($windowListings[$lid])) {
             $activeOrders[$lid] = ($activeOrders[$lid] ?? 0) + 1;
-            $day = $windowListings[$lid]['day'];
-            $daily[$day]['meals']++;
-            $daily[$day]['recovered'] += $amount;
+        }
+
+        // Revenue recovered: counted on the day the food was collected
+        if ($status === 'collected' && !empty($r['collected_on'])) {
+            $cday = date('Y-m-d', strtotime($r['collected_on']));
+            if (isset($daily[$cday])) {
+                $daily[$cday]['meals']++;
+                $daily[$cday]['recovered'] += $amount;
+            }
         }
 
         $orders[] = [
@@ -136,8 +157,11 @@ try {
             'payment_status' => $r['payment_status'],
             'payment_paid'   => $isPaid,
             'order_status'   => $status,
+            'mpesa_receipt'  => $receipts[(int) $r['order_id']] ?? null,
         ];
     }
+
+    // Full (original-price) value of all the food that was listed = what was at risk of waste.
     foreach ($windowListings as $lid => $l) {
         $originalQty = (int) $l['quantity'] + ($activeOrders[$lid] ?? 0);
         $daily[$l['day']]['items_listed'] += $originalQty;

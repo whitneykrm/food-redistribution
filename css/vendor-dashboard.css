@@ -261,6 +261,8 @@ th {
 .dashboard-header p { margin: 4px 0 0; font-size: 0.95rem; }
 a.btn-download { text-decoration: none; display: inline-block; }
 
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
 /* On narrower screens the form wraps instead of squeezing */
 @media (max-width: 1150px) {
     .dashboard-container #add-listing-form {
@@ -428,6 +430,18 @@ a.btn-download { text-decoration: none; display: inline-block; }
     .chart-summary { grid-template-columns: repeat(2, 1fr); }
     .bar-chart { gap: 6px; }
 }
+
+/* 7 / 30 day switch + compact 30-day bars */
+.range-toggle { display: inline-flex; border: 1px solid var(--border, #e5e7eb); border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+.range-toggle button { border: 0; background: #fff; padding: 6px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; color: var(--fc-muted, #6b7280); }
+.range-toggle button.active { background: var(--fc-primary-green, #2e7d32); color: #fff; }
+
+.bar-chart.compact { gap: 2px; }
+.bar-chart.compact .bar-pair { gap: 1px; }
+.bar-chart.compact .bar-item { max-width: 9px; }
+.bar-chart.compact .bar-value,
+.bar-chart.compact .bar-meals { display: none; }
+.bar-chart.compact .bar-label { font-size: 0.62rem; white-space: nowrap; margin-top: 4px; }
 
 /* ── Scan Consumer QR window ───────────────────────────────────────────── */
 .scan-modal { max-width: 440px; }

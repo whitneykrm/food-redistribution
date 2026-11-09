@@ -121,6 +121,10 @@
         <div class="table-card">
             <div class="card-title-row">
                 <h3>Food Saved from Waste</h3>
+                <div class="range-toggle" id="range-toggle">
+                    <button type="button" data-days="7">7 days</button>
+                    <button type="button" data-days="30" class="active">30 days</button>
+                </div>
             </div>
             <div id="chart-summary" class="chart-summary"></div>
             <div id="chart-container">
@@ -162,6 +166,26 @@
             <div class="edit-actions">
                 <button type="button" class="edit-cancel" id="scan-again" style="display: none;">Scan another</button>
                 <button type="button" class="edit-cancel" id="scan-close">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- REQUEST M-PESA PAYMENT -->
+    <div class="edit-backdrop" id="mpesa-modal">
+        <div class="edit-modal mpesa-modal">
+            <h3>Request M-Pesa Payment</h3>
+            <p class="muted" id="mpesa-summary"></p>
+
+            <div id="mpesa-form">
+                <label for="mpesa-phone">Phone number to prompt (optional)</label>
+                <input type="text" id="mpesa-phone" class="mpesa-input" placeholder="Leave empty to use the customer's own number" autocomplete="off">
+            </div>
+
+            <div id="mpesa-state" class="mpesa-state" style="display: none;"></div>
+
+            <div class="edit-actions">
+                <button type="button" class="edit-cancel" id="mpesa-close">Close</button>
+                <button type="button" class="btn-submit" id="mpesa-send">Send prompt</button>
             </div>
         </div>
     </div>
@@ -607,16 +631,21 @@
                 const cancelled = o.order_status === 'cancelled';
                 const payClass = cancelled ? 'pay-none' : (o.payment_paid ? 'pay-paid' : 'pay-pending');
                 const payText = cancelled ? 'Cancelled' : (o.payment_paid ? 'Paid' : 'Pending');
+                const isMpesa = /pesa/i.test(o.payment_method || '');
+                const mpesaBtn = isMpesa
+                    ? `<button class="btn-mpesa" onclick="openMpesaModal(${o.order_id}, ${o.order_no}, ${Number(o.amount) || 0})">Request M-Pesa</button> `
+                    : '';
                 const action = (!cancelled && !o.payment_paid)
-                    ? `<button class="btn-edit" onclick="markPaid(${o.order_id}, this)">Payment received</button>`
+                    ? `${mpesaBtn}<button class="btn-edit" onclick="markPaid(${o.order_id}, this)">Payment received</button>`
                     : '<span class="muted">-</span>';
+                const receipt = o.mpesa_receipt ? `<div class="pay-receipt">${escapeHtml(o.mpesa_receipt)}</div>` : '';
                 return `<tr>
                     <td>#ORD-${o.order_no}</td>
                     <td>${escapeHtml(o.customer)}</td>
                     <td>${escapeHtml(o.item_name)}</td>
                     <td>KES ${kes(o.amount)}</td>
                     <td>${escapeHtml(o.payment_method || '-')}</td>
-                    <td><span class="pay-badge ${payClass}">${payText}</span></td>
+                    <td><span class="pay-badge ${payClass}">${payText}</span>${receipt}</td>
                     <td><span class="order-badge order-${escapeHtml(o.order_status)}">${escapeHtml(statusText[o.order_status] || o.order_status)}</span></td>
                     <td>${action}</td>
                 </tr>`;
@@ -649,31 +678,39 @@
             }
         }
 
+        let chartDays = 30;
+        document.getElementById('range-toggle').addEventListener('click', e => {
+            const b = e.target.closest('button[data-days]');
+            if (!b) return;
+            chartDays = parseInt(b.dataset.days, 10);
+            document.querySelectorAll('#range-toggle button').forEach(x => x.classList.toggle('active', x === b));
+            renderChart();
+        });
+
         function renderChart() {
             const box = document.getElementById('chart-container');
             const sum = document.getElementById('chart-summary');
-            const days = overview.daily || [];
+            const days = (overview.daily || []).slice(-chartDays);
+            const compact = chartDays > 14;
             const today = days[days.length - 1] || { meals: 0, at_risk: 0, recovered: 0 };
             const weekRisk = days.reduce((a, d) => a + d.at_risk, 0);
             const weekRecovered = days.reduce((a, d) => a + d.recovered, 0);
             const weekMeals = days.reduce((a, d) => a + d.meals, 0);
-            const weekItems = days.reduce((a, d) => a + d.items_listed, 0);
-
+            
             sum.innerHTML = `
                 <div class="chart-tile"><span>KES ${kes(today.at_risk)}</span>Food at risk today</div>
                 <div class="chart-tile"><span>KES ${kes(today.recovered)}</span>Revenue recovered today</div>
-                <div class="chart-tile"><span>${weekMeals} of ${weekItems}</span>Items saved (7 days)</div>
-                <div class="chart-tile"><span>KES ${kes(weekRecovered)}</span>Revenue recovered (7 days)</div>`;
+                <div class="chart-tile"><span>${weekMeals}</span>Meals collected (${chartDays} days)</div>
+                <div class="chart-tile"><span>KES ${kes(weekRecovered)}</span>Revenue recovered (${chartDays} days)</div>`;
 
-            if (weekRisk === 0) {
-                box.innerHTML = '<p class="muted">No listings in the last 7 days yet. The graph fills in as you list food and consumers reserve it.</p>';
+            if (weekRisk === 0 && weekRecovered === 0) {
+                box.innerHTML = '<p class="muted">No listings in this period yet. The graph fills in as you list food and consumers reserve it.</p>';
                 return;
             }
 
             const max = Math.max(1, ...days.map(d => Math.max(d.at_risk, d.recovered)));
-            box.innerHTML = `<div class="bar-chart">${days.map(d => {
-                const lost = Math.max(0, d.at_risk - d.recovered);
-                return `<div class="bar-col" title="${escapeHtml(d.label)}: ${d.items_listed} item(s) listed worth KES ${kes(d.at_risk)} at original price, ${d.meals} saved for KES ${kes(d.recovered)}, KES ${kes(lost)} not recovered">
+            box.innerHTML = `<div class="bar-chart${compact ? ' compact' : ''}">${days.map((d, idx) => {
+                return `<div class="bar-col" title="${escapeHtml(d.label)}: ${d.items_listed} item(s) expiring worth KES ${kes(d.at_risk)} at original price; ${d.meals} meal(s) collected for KES ${kes(d.recovered)}">
                     <div class="bar-pair">
                         <div class="bar-item">
                             <div class="bar-value">${d.at_risk ? kes(d.at_risk) : ''}</div>
@@ -684,13 +721,13 @@
                             <div class="bar-stack"><div class="bar-received" style="height:${(d.recovered / max) * 100}%"></div></div>
                         </div>
                     </div>
-                    <div class="bar-label">${escapeHtml(d.label)}</div>
-                    <div class="bar-meals">${d.meals} of ${d.items_listed} saved</div>
+                    <div class="bar-label">${(!compact || idx % 5 === 0 || idx === days.length - 1) ? escapeHtml(d.label) : '&nbsp;'}</div>
+                    <div class="bar-meals">${d.meals} collected</div>
                 </div>`;
             }).join('')}</div>
             <div class="chart-legend">
                 <span><i class="dot dot-risk"></i>Food at risk (original price)</span>
-                <span><i class="dot dot-received"></i>Revenue recovered (what you were paid)</span>
+                <span><i class="dot dot-received"></i>Revenue recovered (collected that day)</span>
                 <span class="muted">Amounts in KES</span>
             </div>`;
         }
@@ -741,5 +778,6 @@
         loadOverview();
     </script>
     <script src="js/vendor-scan.js?v=1"></script>
+    <script src="js/vendor-mpesa.js?v=1"></script>
 </body>
 </html>

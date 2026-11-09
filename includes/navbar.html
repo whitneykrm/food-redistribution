@@ -54,6 +54,14 @@
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
     const isActive = (page) => currentPage === page ? 'active' : '';
 
+    // These pages already have their own Login / Sign up buttons,
+    // so the navbar Login button is hidden there when nobody is signed in.
+    const loginPages = ['index.html', 'login.html'];
+    const hideLoginBtn = loginPages.includes(currentPage);
+    if (hideLoginBtn) {
+        document.getElementById('auth-action-btn').style.display = 'none';   // no flash while the session is checked
+    }
+
     // Returns just the first name from whatever the session endpoint provides
     const firstNameOf = (user) => {
         const full = user.first_name || user.firstname || user.full_name || user.fullname
@@ -86,6 +94,7 @@
                 actionBtn.parentNode.insertBefore(nameEl, actionBtn);
             }
 
+            actionBtn.style.display = '';   // signed in: always show Logout
             actionBtn.textContent = 'Logout';
             actionBtn.href = 'logout.php';
             actionBtn.classList.remove('btn-nav-login');
@@ -159,6 +168,7 @@
                 <a href="index.html" class="${isActive('index.html')}">Home</a>
                 <a href="about.html" class="${isActive('about.html')}">About</a>
             `;
+            actionBtn.style.display = hideLoginBtn ? 'none' : '';
             actionBtn.textContent = 'Login';
             actionBtn.href = 'login.html';
             actionBtn.classList.remove('btn-logout');
