@@ -104,6 +104,8 @@
     font-size: 1.3rem;
     margin-bottom: 20px;
 }
+
+/* Heading on the left, download button on the right */
 .card-head {
     display: flex;
     justify-content: space-between;
@@ -198,6 +200,30 @@ th {
     flex: 0 0 150px;
 }
 
+/* ── Revenue recovered by vendor (bar graph) ──────────────────────────── */
+.vbar-chart { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+
+.vbar-row {
+    display: grid;
+    grid-template-columns: minmax(110px, 200px) 1fr minmax(120px, auto);
+    align-items: center;
+    gap: 14px;
+}
+
+.vbar-name { font-weight: 600; color: var(--fc-dark, #1f2937); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.vbar-track { background: var(--fc-light-bg, #f4f6f8); border-radius: 6px; height: 26px; overflow: hidden; }
+
+.vbar-fill { background: var(--fc-primary-green, #2e7d32); height: 100%; border-radius: 6px; }
+
+.vbar-value { font-weight: 700; color: var(--fc-primary-green, #2e7d32); white-space: nowrap; }
+.vbar-value span { font-weight: 500; color: var(--fc-muted, #6b7280); font-size: 0.85rem; }
+
+@media (max-width: 600px) {
+    .vbar-row { grid-template-columns: 1fr; gap: 6px; }
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
     .stats-grid {

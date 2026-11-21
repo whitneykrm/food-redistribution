@@ -609,3 +609,11 @@ body > * {
     color: var(--grey);
     font-size: .85rem;
 }
+
+/* Footer text readable on the green guest pages (home, login, register) */
+.guest-page #footer-placeholder p,
+.guest-page #footer-placeholder footer,
+.guest-page #footer-container p,
+.guest-page #footer-container footer {
+    color: #bbe2c0;
+}

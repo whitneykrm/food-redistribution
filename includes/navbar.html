@@ -1,10 +1,9 @@
 <style>
-    
     .navbar .navbar-user a.btn-logout {
         display: inline-block;
         background-color: #dc3545;
         color: #ffffff;
-        padding: 10px 20px;
+        padding: 10px 16px;
         border-radius: 8px;
         font-size: 0.95rem;
         font-weight: 700;
@@ -12,6 +11,24 @@
         transition: background 0.2s ease;
     }
     .navbar .navbar-user a.btn-logout:hover { background-color: #bd2130; }
+
+    /* Make the whole bar fit: wider container, tighter spacing, Logout never squeezed out */
+    @media (min-width: 801px) {
+        .navbar-wrapper .navbar { max-width: 1600px; padding: 12px 20px; gap: 1rem; flex-wrap: wrap; row-gap: 8px; }
+        .navbar-wrapper .navbar-links { gap: 4px; }
+        .navbar-wrapper .navbar-links a { padding: 6px 9px; font-size: 0.92rem; }
+        .navbar-wrapper .navbar-user { flex-shrink: 0; gap: 12px; }
+    }
+
+    /* Logo image beside the Food Connect name */
+    .navbar .brand-header { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .navbar .brand-logo {
+        width: 40px;
+        height: 40px;
+        flex-shrink: 0;
+        display: block;
+    }
+    .navbar .brand-name { white-space: nowrap; }
 
     /* Signed-in user's first name, shown to the left of the Logout button */
     .navbar .navbar-user { display: flex; align-items: center; gap: 16px; }
@@ -27,6 +44,7 @@
     <nav class="navbar">
         <!-- Brand / Logo Section -->
         <a href="index.html" class="brand-header">
+            <img src="images/logo.svg" alt="Food Connect Logo" width="40" height="40" class="brand-logo">
             <div class="brand-title">
                 <span class="brand-name">
                     <span class="text-green">Food</span>
@@ -54,7 +72,6 @@
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
     const isActive = (page) => currentPage === page ? 'active' : '';
 
-    // These pages already have their own Login / Sign up buttons,
     // so the navbar Login button is hidden there when nobody is signed in.
     const loginPages = ['index.html', 'login.html'];
     const hideLoginBtn = loginPages.includes(currentPage);
@@ -136,11 +153,11 @@
                 linksContainer.innerHTML = `
                     <a href="index.html" class="${isActive('index.html')}">Home</a>
                     <a href="about.html" class="${isActive('about.html')}">About</a>
-                    <a href="admin-dashboard.html" class="${isActive('admin-dashboard.html')}">Admin Dashboard</a>
+                    <a href="admin-dashboard.html" class="${isActive('admin-dashboard.html')}">Dashboard</a>
+                    <a href="admin-reports.html" class="${isActive('admin-reports.html')}">Reports</a>
                 `;
             } else {
                 // Consumer: Home, About, Browse Listings, My Orders, My Points.
-                // The three dashboard links switch sections using the URL hash.
                 const hashTab = () => (window.location.hash || '#browse').replace('#', '');
                 const activeTab = () => currentPage === 'consumer-dashboard.html' ? hashTab()
                                       : currentPage === 'checkout.html' ? 'browse' : '';

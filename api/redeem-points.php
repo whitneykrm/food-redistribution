@@ -5,6 +5,7 @@ header('X-Content-Type-Options: nosniff');
 session_start();
 require_once '../includes/db.php';
 require_once '../includes/points.php';
+require_once '../includes/payment-status.php';
 
 function respond(int $status, array $payload): void
 {
@@ -38,6 +39,12 @@ if ($listingId <= 0) {
 }
 
 try {
+    // The value this database uses for "paid" (paid / completed / ...).
+    $paidStatus = paidStatusValue($pdo);
+    if ($paidStatus === null) {
+        respond(500, ['success' => false, 'message' => 'Payment status is not set up correctly.']);
+    }
+
     $pdo->beginTransaction();
     $stmt = $pdo->prepare('SELECT consumer_id FROM consumer WHERE user_id = :user_id LIMIT 1 FOR UPDATE');
     $stmt->execute(['user_id' => $_SESSION['user_id']]);
@@ -54,6 +61,7 @@ try {
     if ($available < MIN_REDEEM_POINTS) {
         abort($pdo, 400, 'You need at least ' . MIN_REDEEM_POINTS . " points to redeem. You have {$available}.");
     }
+
     $stmt = $pdo->prepare(
         'SELECT vendor_id, quantity, discounted_price, (expiry_time > NOW()) AS is_live
          FROM listings WHERE listings_id = :id FOR UPDATE'
@@ -83,6 +91,7 @@ try {
     if ($available < $cost) {
         abort($pdo, 400, "This item costs {$cost} points and you have {$available}.");
     }
+
     $update = $pdo->prepare('UPDATE listings SET quantity = quantity - 1 WHERE listings_id = :id AND quantity > 0');
     $update->execute(['id' => $listingId]);
     if ($update->rowCount() === 0) {
@@ -101,14 +110,16 @@ try {
         'qr_code'     => $qrCode,
     ]);
     $orderId = (int) $pdo->lastInsertId();
+
     $insertPayment = $pdo->prepare(
         "INSERT INTO payment (vendor_id, order_id, amount, payment_method, payment_status)
-         VALUES (:vendor_id, :order_id, :amount, 'points', 'completed')"
+         VALUES (:vendor_id, :order_id, :amount, 'points', :status)"
     );
     $insertPayment->execute([
         'vendor_id' => $listing['vendor_id'],
         'order_id'  => $orderId,
         'amount'    => $listing['discounted_price'],
+        'status'    => $paidStatus,
     ]);
 
     $pdo->commit();

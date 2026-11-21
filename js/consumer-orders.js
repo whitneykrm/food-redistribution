@@ -29,7 +29,7 @@ async function loadOrders() {
 
 function pointsBadge(o) {
     if (o.paid_with_points) {
-        return o.order_status === 'cancelled'
+        return (o.order_status === 'cancelled' || o.order_status === 'expired')
             ? `<span class="badge-points">${o.points_cost} pts refunded</span>`
             : `<span class="badge-points">${o.points_cost} pts used</span>`;
     }
@@ -143,7 +143,7 @@ function isPaid(o) {
 
 // A receipt is for an order that was not cancelled and has been collected or paid for
 function canDownloadReceipt(o) {
-    return o.order_status !== 'cancelled' && (o.order_status === 'collected' || isPaid(o));
+    return o.order_status !== 'cancelled' && o.order_status !== 'expired' && (o.order_status === 'collected' || isPaid(o));
 }
 
 function methodLabel(o) {

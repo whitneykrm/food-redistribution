@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - Food Connect</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/admin-dashboard.css">
+    <style>
+        /* owner's name under the business name */
+        .vbar-name small { display: block; font-weight: 500; font-size: 0.8rem; color: var(--fc-muted, #6b7280); }
+    </style>
+</head>
+<body>
+
+    <div id="navbar-container"></div>
+
+    <div class="dashboard-container">
+        <div id="flash" class="flash" style="display:none;"></div>
+
+        <div class="dashboard-header">
+            <h2>Reports</h2>
+        </div>
+
+        <div class="table-card">
+            <h3>Revenue Recovered by Vendor</h3>
+            <p class="muted">Money vendors have recovered from surplus food that customers collected (KES).</p>
+            <div id="revenueChart" class="vbar-chart"><p class="muted">Loading…</p></div>
+        </div>
+    </div>
+
+    <div id="footer-container"></div>
+
+    <script src="js/load-fragment.js"></script>
+    <script>
+        function showFlash(type, message) {
+            const flash = document.getElementById('flash');
+            flash.className = 'flash flash-' + type;
+            flash.textContent = message;
+            flash.style.display = 'block';
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str ?? '';
+            return div.innerHTML;
+        }
+
+        function renderRevenueChart(rows) {
+            const box = document.getElementById('revenueChart');
+            const max = Math.max(0, ...rows.map(r => r.recovered));
+            if (!rows.length || max === 0) {
+                box.innerHTML = '<p class="muted">No revenue recovered yet. Bars appear once customers collect their orders.</p>';
+                return;
+            }
+            box.innerHTML = rows.map(r => {
+                const pct = r.recovered > 0 ? Math.max(2, (r.recovered / max) * 100) : 0;
+                return `<div class="vbar-row">
+                    <div class="vbar-name">${escapeHtml(r.business_name)}<small>${escapeHtml(((r.firstname || '') + ' ' + (r.lastname || '')).trim())}</small></div>
+                    <div class="vbar-track"><div class="vbar-fill" style="width:${pct}%"></div></div>
+                    <div class="vbar-value">KES ${r.recovered.toLocaleString('en-KE')} <span>· ${r.meals} meal${r.meals === 1 ? '' : 's'}</span></div>
+                </div>`;
+            }).join('');
+        }
+
+        async function loadReports() {
+            try {
+                const response = await fetch('api/admin-data.php');
+                if (!response.ok) {
+                    showFlash('error', 'Could not load the report.');
+                    return;
+                }
+                const data = await response.json();
+                renderRevenueChart(data.vendorRevenue || []);
+            } catch (err) {
+                console.error('Report error:', err);
+                showFlash('error', 'Could not load the report.');
+            }
+        }
+
+        // Admin-only page: send everyone else to the login page
+        async function checkAdminAccess() {
+            try {
+                const res = await fetch('api/session-check.php');
+                const data = await res.json();
+                if (!data.loggedIn || (data.role || data.user?.role) !== 'admin') {
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                return true;
+            } catch (err) {
+                console.error('Session check failed:', err);
+                window.location.href = 'login.html';
+                return false;
+            }
+        }
+
+        (async () => {
+            const allowed = await checkAdminAccess();
+            if (!allowed) return;
+
+            loadFragment('navbar-container', 'includes/navbar.html?v=2');
+            loadFragment('footer-container', 'includes/footer.html');
+            loadReports();
+        })();
+    </script>
+</body>
+</html>

@@ -127,6 +127,7 @@
 .status-reserved { background: #fff1e0; color: var(--fc-accent-orange, #e67e22); }
 .status-collected { background: var(--light-green, #e7f5e9); color: var(--dark-green, #276534); }
 .status-cancelled { background: #f1f1f1; color: #6c757d; }
+.status-expired { background: #fdecea; color: #b42318; }
 
 /* My Points section */
 .how-it-works { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }

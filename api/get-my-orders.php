@@ -17,6 +17,9 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'consumer') {
 }
 
 try {
+    // Reservations that were not collected before the pickup time become 'expired'
+    expireOrders($pdo);
+
     $stmt = $pdo->prepare('SELECT consumer_id FROM consumer WHERE user_id = :user_id LIMIT 1');
     $stmt->execute(['user_id' => $_SESSION['user_id']]);
     $consumer = $stmt->fetch(PDO::FETCH_ASSOC);

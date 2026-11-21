@@ -14,6 +14,17 @@ $password        = $input['password'] ?? '';
 $confirmPassword = $input['confirm_password'] ?? '';
 $role            = trim($input['role'] ?? '');
 
+// Password rules: 6+ characters, an uppercase letter, a lowercase letter, a number and a special character.
+function passwordProblem(string $password): string
+{
+    if (strlen($password) < 6)             return 'Password must be at least 6 characters long.';
+    if (!preg_match('/[A-Z]/', $password)) return 'Password must include an uppercase letter.';
+    if (!preg_match('/[a-z]/', $password)) return 'Password must include a lowercase letter.';
+    if (!preg_match('/[0-9]/', $password)) return 'Password must include a number.';
+    if (!preg_match('/[^A-Za-z0-9]/', $password)) return 'Password must include a special character, such as ! @ # $ %.';
+    return '';
+}
+
 if (empty($firstName) || empty($lastName) || empty($phone) || !$email || empty($password) || empty($role)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'All fields are required and must be valid.']);
@@ -23,6 +34,13 @@ if (empty($firstName) || empty($lastName) || empty($phone) || !$email || empty($
 if (!hash_equals($password, (string) $confirmPassword)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Passwords do not match.']);
+    exit();
+}
+
+$passwordIssue = passwordProblem((string) $password);
+if ($passwordIssue !== '') {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => $passwordIssue]);
     exit();
 }
 

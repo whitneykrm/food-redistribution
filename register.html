@@ -6,16 +6,21 @@
   <title>Create Account - Urban Surplus Food Redistribution</title>
   <link rel="stylesheet" href="css/style.css">
   <style>
+    .guest-page .card, .guest-page main { position: relative; z-index: 1; }
     .error-text { color: #d32f2f; font-size: 0.85rem; margin-top: 4px; display: none; }
     .input-error { border: 1px solid #d32f2f !important; }
     .password-wrap { position: relative; }
     .password-wrap input { width: 100%; padding-right: 70px; box-sizing: border-box; }
     .toggle-password { position: absolute; top: 50%; right: 10px; transform: translateY(-50%); background: none; border: none; padding: 4px 6px; color: #2d6a4f; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
     .toggle-password:hover { text-decoration: underline; }
+    .pw-checklist { list-style: none; margin: 8px 0 0; padding: 0; font-size: 0.85rem; color: #6b7280; }
+    .pw-checklist li { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+    .pw-checklist input { margin: 0; accent-color: #2d6a4f; pointer-events: none; }
+    .pw-checklist li.met { color: #2d6a4f; }
     .server-error { background-color: #fde8e8; color: #d32f2f; padding: 10px 14px; border-radius: 6px; border: 1px solid #f8b4b4; margin-bottom: 16px; font-size: 0.9rem; display: none; }
   </style>
 </head>
-<body>
+<body class="guest-page">
 
   <div class="card">
     <h2>Create Account</h2>
@@ -52,6 +57,13 @@
           <input type="password" id="password" name="password" placeholder="Create a strong password" required>
           <button type="button" class="toggle-password" data-target="password" aria-label="Show password" aria-pressed="false">Show</button>
         </div>
+        <ul class="pw-checklist" id="pwChecklist" style="display:none;">
+          <li data-rule="length"><input type="checkbox" disabled> At least 6 characters</li>
+          <li data-rule="upper"><input type="checkbox" disabled> An uppercase letter</li>
+          <li data-rule="lower"><input type="checkbox" disabled> A lowercase letter</li>
+          <li data-rule="number"><input type="checkbox" disabled> A number</li>
+          <li data-rule="special"><input type="checkbox" disabled> A special character (! @ # $ %)</li>
+        </ul>
         <small class="error-text" id="passwordError"></small>
       </div>
 
@@ -82,7 +94,12 @@
     </p>
   </div>
 
+  <div id="footer-placeholder"></div>
+
+  <script src="js/load-fragment.js"></script>
   <script>
+    loadFragment('footer-placeholder', 'includes/footer.html');
+
     const registerForm = document.getElementById('registerForm');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
@@ -137,25 +154,36 @@
       return true;
     }
 
-    function validatePassword() {
+    // Password rules, shown as a checklist that disappears once every rule is met.
+    const PASSWORD_RULES = {
+      length:  p => p.length >= 6,
+      upper:   p => /[A-Z]/.test(p),
+      lower:   p => /[a-z]/.test(p),
+      number:  p => /[0-9]/.test(p),
+      special: p => /[^A-Za-z0-9]/.test(p)
+    };
+    const pwChecklist = document.getElementById('pwChecklist');
+
+    // Ticks the rules that are met. Returns true when all of them are.
+    function updateChecklist() {
       const password = passwordInput.value;
-      const forbiddenPasswords = ['123', '1234', '12345', '123456', '12345678', 'password'];
+      let allMet = true;
+      pwChecklist.querySelectorAll('li').forEach(li => {
+        const ok = PASSWORD_RULES[li.dataset.rule](password);
+        li.classList.toggle('met', ok);
+        li.querySelector('input').checked = ok;
+        if (!ok) allMet = false;
+      });
+      pwChecklist.style.display = allMet ? 'none' : 'block';
+      return allMet;
+    }
 
-      if (password.length === 0) {
-        showError(passwordInput, passwordError, 'Please enter a password.');
+    function validatePassword() {
+      const allMet = updateChecklist();
+      if (!allMet) {
+        passwordInput.classList.add('input-error');
         return false;
       }
-
-      if (forbiddenPasswords.includes(password.toLowerCase()) || /^\d+$/.test(password)) {
-        showError(passwordInput, passwordError, 'Password cannot be simple numbers like "123" or numbers only.');
-        return false;
-      }
-
-      if (password.length < 6) {
-        showError(passwordInput, passwordError, 'Password must be at least 6 characters long.');
-        return false;
-      }
-
       clearError(passwordInput, passwordError);
       return true;
     }
@@ -188,6 +216,7 @@
       hideServerError();
       validateEmail();
     });
+    passwordInput.addEventListener('focus', updateChecklist);
     passwordInput.addEventListener('input', () => {
       hideServerError();
       validatePassword();

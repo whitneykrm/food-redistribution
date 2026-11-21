@@ -3,6 +3,7 @@
 const KES_PER_POINT     = 10;   // Earn: 1 point for every KES 10 spent (rounded down)
 const POINT_VALUE_KES   = 1;    // Redeem: 1 point is worth KES 1
 const MIN_REDEEM_POINTS = 100;  // Balance needed before redemption unlocks
+
 function pointsForAmount($amount): int
 {
     return (int) floor(((float) $amount) / KES_PER_POINT);
@@ -22,6 +23,24 @@ function pointsRules(): array
         'min_redeem'      => MIN_REDEEM_POINTS,
     ];
 }
+
+// Reservations nobody collected before the listing's pickup time become 'expired'.
+// Points spent on them are given back automatically, because points only count
+// as spent on orders that are 'reserved' or 'collected'.
+function expireOrders(PDO $pdo): void
+{
+    try {
+        $pdo->exec(
+            "UPDATE orders o
+             JOIN listings l ON l.listings_id = o.listing_id
+             SET o.order_status = 'expired'
+             WHERE o.order_status = 'reserved' AND l.expiry_time <= NOW()"
+        );
+    } catch (Throwable $e) {
+        error_log('expireOrders failed: ' . $e->getMessage());
+    }
+}
+
 function summarizePoints(array $rows): array
 {
     $earned = 0;
@@ -55,6 +74,8 @@ function summarizePoints(array $rows): array
 
 function fetchPointsSummary(PDO $pdo, int $consumerId): array
 {
+    expireOrders($pdo);   // make sure expired reservations are not counted as spent
+
     $stmt = $pdo->prepare(
         'SELECT o.order_status, p.amount, p.payment_method
          FROM orders o

@@ -55,6 +55,7 @@ try {
     // Lock the order so two scans at once cannot both succeed
     $stmt = $pdo->prepare(
         "SELECT o.order_id, o.order_status, l.vendor_id, l.item_name,
+                (l.expiry_time <= NOW()) AS is_expired,
                 u.firstname, u.lastname,
                 p.amount, p.payment_method, p.payment_status,
                 (SELECT COUNT(*) FROM orders o2
@@ -92,6 +93,14 @@ try {
     if ($order['order_status'] === 'collected') {
         $pdo->rollBack();
         echo json_encode(['success' => false, 'code' => 'already_collected', 'message' => 'This order has already been collected.', 'order' => orderPayload($order)]);
+        exit();
+    }
+
+    // The QR code stops working once the listing's pickup time has passed,
+    // even though the consumer generated it in time.
+    if ((int) $order['is_expired']) {
+        $pdo->rollBack();
+        echo json_encode(['success' => false, 'code' => 'expired', 'message' => 'This QR code has expired because the listing\'s pickup time has passed. Do not hand over any food.', 'order' => orderPayload($order)]);
         exit();
     }
 

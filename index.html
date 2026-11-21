@@ -29,16 +29,11 @@
     </main>
 
     <div id="footer-placeholder"></div>
-
-    <!-- 1. Include fragment loader -->
     <script src="js/load-fragment.js"></script>
-
-    <!-- 2. Auth Check Script -->
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            // Load header/footer templates safely
             if (typeof loadFragment === 'function') {
-                await loadFragment('navbar-placeholder', 'includes/navbar.html');
+                await loadFragment('navbar-placeholder', 'includes/navbar.html?v=2');
                 await loadFragment('footer-placeholder', 'includes/footer.html');
             }
 
@@ -50,7 +45,6 @@
             const container = document.getElementById('welcome-actions');
 
             try {
-                // Correct relative path to your PHP endpoint
                 const response = await fetch('api/session-check.php');
 
                 // If user is not logged in (401) or request fails
