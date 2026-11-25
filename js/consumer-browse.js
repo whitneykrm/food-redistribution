@@ -15,17 +15,22 @@ function listingDistance(l) {
     if (!userLocation || l.latitude == null || l.longitude == null) return null;
     return distanceKm(userLocation.lat, userLocation.lng, Number(l.latitude), Number(l.longitude));
 }
+// Redraw both card lists that use the geofence (Browse and Redeem)
+function renderFenced() {
+    renderListings();
+    if (typeof renderRedeem === 'function') renderRedeem();
+}
 
 function requestLocation() {
-    if (!navigator.geolocation) { locationState = 'denied'; renderListings(); return; }
+    if (!navigator.geolocation) { locationState = 'denied'; renderFenced(); return; }
     locationState = 'asking';
     navigator.geolocation.getCurrentPosition(
         (pos) => {
             userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             locationState = 'granted';
-            renderListings();
+            renderFenced();
         },
-        () => { locationState = 'denied'; renderListings(); },
+        () => { locationState = 'denied'; renderFenced(); },
         { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
     );
 }

@@ -36,10 +36,25 @@ function renderRedeem() {
     }
 
     grid.innerHTML = items.map(l => {
-        const canRedeem = unlocked && available >= l.points_cost;
-        let buttonText = `Redeem ${l.points_cost.toLocaleString('en-KE')} pts`;
-        if (!unlocked) buttonText = `Unlocks at ${rules.min_redeem} pts`;
-        else if (!canRedeem) buttonText = `Need ${(l.points_cost - available).toLocaleString('en-KE')} more pts`;
+        const hasPoints = unlocked && available >= l.points_cost;
+        const dist = listingDistance(l);
+        const needsFence = redeemNeedsFence(l);
+        const tooFar = needsFence && locationState === 'granted' && dist !== null && dist > reserveRadiusKm;
+        const canRedeem = hasPoints && redeemWithinFence(l);
+
+        // Same geofence as reserving: points first, then location (samples and vendors without a pin are not restricted)
+        let button;
+        if (!unlocked) {
+            button = `<button type="button" class="btn-primary" disabled>Unlocks at ${rules.min_redeem} pts</button>`;
+        } else if (!hasPoints) {
+            button = `<button type="button" class="btn-primary" disabled>Need ${(l.points_cost - available).toLocaleString('en-KE')} more pts</button>`;
+        } else if (needsFence && locationState !== 'granted') {
+            button = `<button type="button" class="btn-primary btn-locate-me" data-action="locate">${locationState === 'asking' ? 'Getting your location...' : 'Share location to redeem'}</button>`;
+        } else if (tooFar) {
+            button = `<button type="button" class="btn-primary btn-too-far" disabled>Too far to redeem</button>`;
+        } else {
+            button = `<button type="button" class="btn-primary" data-action="redeem" data-id="${l.listings_id}">Redeem ${l.points_cost.toLocaleString('en-KE')} pts</button>`;
+        }
 
         return `
             <article class="food-card ${canRedeem ? '' : 'locked'}">
@@ -57,9 +72,22 @@ function renderRedeem() {
                     <span>Expires in ${timeLeft(l.expiry_time)}</span>
                 </div>
                 <div class="address">Pickup: ${escapeHtml(l.address)}</div>
-                <button type="button" class="btn-primary" data-action="redeem" data-id="${l.listings_id}" ${canRedeem ? '' : 'disabled'}>${buttonText}</button>
+                ${dist !== null ? `<div class="distance ${tooFar ? 'far' : 'near'}">${formatKm(dist)} away${tooFar ? ` (redeem within ${reserveRadiusKm} km)` : ''}</div>` : ''}
+                ${button}
             </article>`;
     }).join('');
+}
+
+// Geofence for redeeming, matching the Reserve rule in consumer-browse.js
+function redeemNeedsFence(l) {
+    return !l.is_sample && l.latitude != null && l.longitude != null;
+}
+
+function redeemWithinFence(l) {
+    if (!redeemNeedsFence(l)) return true;
+    if (locationState !== 'granted') return false;
+    const dist = listingDistance(l);
+    return dist !== null && dist <= reserveRadiusKm;
 }
 
 function renderActivity() {
@@ -100,6 +128,11 @@ function renderActivity() {
 function openRedeemModal(listingId) {
     const listing = allListings.find(l => l.listings_id === listingId);
     if (!listing) return;
+    if (!redeemWithinFence(listing)) {
+        showAlert(`You can only redeem food within ${reserveRadiusKm} km of the vendor.`, false);
+        renderRedeem();
+        return;
+    }
     redeemTarget = listing;
 
     $('redeem-summary').innerHTML = `
@@ -113,6 +146,12 @@ function openRedeemModal(listingId) {
 
 async function confirmRedemption() {
     if (!redeemTarget) return;
+    if (!redeemWithinFence(redeemTarget)) {   // location may have changed while the window was open
+        closeModals();
+        showAlert(`You can only redeem food within ${reserveRadiusKm} km of the vendor.`, false);
+        renderRedeem();
+        return;
+    }
     const btn = $('redeem-confirm');
     btn.disabled = true;
     btn.textContent = 'Redeeming...';

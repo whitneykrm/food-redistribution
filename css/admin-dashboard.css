@@ -1,7 +1,10 @@
 .dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 30px 20px;
     display: flex;
     flex-direction: column;
-    gap: 25px;
+    gap: 20px;
 }
 
 .dashboard-header {
@@ -66,13 +69,13 @@
 }
 
 .stat-box {
-    padding: 1.25rem;
+    padding: 0.9rem 1.1rem;
     border: 1px solid var(--border, #e5e7eb);
     border-radius: 12px;
     background: var(--fc-white, #ffffff);
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.25rem;
 }
 
 .stat-label {
@@ -94,7 +97,7 @@
 /* Table cards (reused pattern from vendor-dashboard) */
 .table-card {
     background: var(--fc-white, #ffffff);
-    padding: 30px;
+    padding: 22px 24px;
     border-radius: 8px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
@@ -102,7 +105,7 @@
 .table-card h3 {
     color: var(--fc-primary-green, #2e7d32);
     font-size: 1.3rem;
-    margin-bottom: 20px;
+    margin-bottom: 14px;
 }
 
 /* Heading on the left, download button on the right */
@@ -111,7 +114,7 @@
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 14px;
 }
 
 .card-head h3 {
@@ -188,9 +191,6 @@ th {
 .btn-delete:hover {
     background-color: #bd2130;
 }
-
-/* Admin profile form uses the shared .form-row, but needs the same
-   fixed-width button column and wrap behavior as the vendor dashboard */
 .table-card .form-row {
     flex-wrap: wrap;
     align-items: flex-end;
@@ -222,8 +222,6 @@ th {
 @media (max-width: 600px) {
     .vbar-row { grid-template-columns: 1fr; gap: 6px; }
 }
-
-/* ── Responsive ─────────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
     .stats-grid {

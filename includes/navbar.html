@@ -38,6 +38,58 @@
         color: var(--fc-dark, #333);
         white-space: nowrap;
     }
+
+    /* Accessibility: page zoom (vendor dashboard). One small button between the name and
+       Logout; its panel floats over the page so the navbar layout is unchanged. */
+    .navbar .zoom-controls { position: relative; display: inline-flex; }
+    .navbar .zoom-toggle {
+        width: 38px;
+        height: 38px;
+        border: 1px solid #d0d5dd;
+        border-radius: 8px;
+        background: #ffffff;
+        color: var(--fc-dark, #333);
+        font-family: inherit;
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .navbar .zoom-toggle:hover,
+    .navbar .zoom-toggle[aria-expanded="true"] { background: #e8f5e9; }
+    .navbar .zoom-panel {
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        border: 1px solid #d0d5dd;
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+        overflow: hidden;
+    }
+    .navbar .zoom-panel[hidden] { display: none; }
+    .navbar .zoom-panel button {
+        min-width: 44px;
+        min-height: 40px;
+        padding: 0 10px;
+        border: 0;
+        background: transparent;
+        color: var(--fc-dark, #333);
+        font-family: inherit;
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .navbar .zoom-panel button + button { border-left: 1px solid #d0d5dd; }
+    .navbar .zoom-panel button:hover:not(:disabled) { background: #e8f5e9; }
+    .navbar .zoom-panel button:disabled { color: #a0a4ab; cursor: not-allowed; }
+    .navbar .zoom-controls button:focus-visible { outline: 3px solid #1e7d32; outline-offset: -3px; }
+    .navbar .zoom-panel .zoom-level { min-width: 64px; font-weight: 600; }
+    .navbar .zoom-panel .zoom-small { font-size: 0.8rem; }
+    .navbar .zoom-panel .zoom-large { font-size: 1.15rem; }
 </style>
 
 <header class="navbar-wrapper">
@@ -69,6 +121,86 @@
 
 <script>
 (async function initNavbar() {
+// Scales the whole page, including pixel-sized text, and remembers the choice.
+let ZOOM_KEY = 'fc-vendor-zoom';   // set per role below: fc-vendor-zoom, fc-consumer-zoom, fc-admin-zoom
+const ZOOM_MIN = 80, ZOOM_MAX = 150, ZOOM_STEP = 10, ZOOM_DEFAULT = 100;
+
+function readZoom() {
+    try {
+        const saved = parseInt(localStorage.getItem(ZOOM_KEY), 10);
+        if (saved >= ZOOM_MIN && saved <= ZOOM_MAX) return saved;
+    } catch (e) { /* storage unavailable: use the default */ }
+    return ZOOM_DEFAULT;
+}
+
+function saveZoom(level) {
+    try { localStorage.setItem(ZOOM_KEY, String(level)); } catch (e) { /* ignore */ }
+}
+
+function applyZoom(level) {
+    document.documentElement.style.zoom = level === ZOOM_DEFAULT ? '' : (level / 100);
+}
+
+function addZoomControls(beforeEl, role) {
+    ZOOM_KEY = `fc-${role}-zoom`;
+    let level = readZoom();
+
+    const group = document.createElement('div');
+    group.id = 'zoom-controls';
+    group.className = 'zoom-controls';
+    group.innerHTML = `
+        <button type="button" class="zoom-toggle" aria-expanded="false" aria-controls="zoom-panel"
+                aria-label="Accessibility: page zoom" title="Accessibility: page zoom">Aa</button>
+        <div class="zoom-panel" id="zoom-panel" role="group" aria-label="Page zoom" hidden>
+            <button type="button" class="zoom-small" data-zoom="out" aria-label="Zoom out" title="Zoom out">A&minus;</button>
+            <button type="button" class="zoom-level" data-zoom="reset" title="Reset zoom to 100%"></button>
+            <button type="button" class="zoom-large" data-zoom="in" aria-label="Zoom in" title="Zoom in">A+</button>
+        </div>
+        <span aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;"></span>
+    `;
+
+    const toggle = group.querySelector('.zoom-toggle');
+    const panel = group.querySelector('.zoom-panel');
+    const outBtn = group.querySelector('[data-zoom="out"]');
+    const resetBtn = group.querySelector('[data-zoom="reset"]');
+    const inBtn = group.querySelector('[data-zoom="in"]');
+    const announcer = group.querySelector('[aria-live]');
+
+    const render = (announce) => {
+        applyZoom(level);
+        resetBtn.textContent = level + '%';
+        resetBtn.setAttribute('aria-label', `Zoom is ${level} percent. Reset to 100 percent`);
+        outBtn.disabled = level <= ZOOM_MIN;
+        inBtn.disabled = level >= ZOOM_MAX;
+        if (announce) announcer.textContent = `Zoom ${level} percent`;
+    };
+    const setLevel = (next) => {
+        level = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next));
+        saveZoom(level);
+        render(true);
+    };
+    const openPanel = (open) => {
+        panel.hidden = !open;
+        toggle.setAttribute('aria-expanded', String(open));
+    };
+
+    toggle.addEventListener('click', () => openPanel(panel.hidden));
+    outBtn.addEventListener('click', () => setLevel(level - ZOOM_STEP));
+    inBtn.addEventListener('click', () => setLevel(level + ZOOM_STEP));
+    resetBtn.addEventListener('click', () => setLevel(ZOOM_DEFAULT));
+
+    // Close with Escape or a click elsewhere
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !panel.hidden) { openPanel(false); toggle.focus(); }
+    });
+    document.addEventListener('click', (e) => {
+        if (!group.contains(e.target)) openPanel(false);
+    });
+
+    beforeEl.parentNode.insertBefore(group, beforeEl);   // sits between the name and Logout
+    render(false);
+}
+
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
     const isActive = (page) => currentPage === page ? 'active' : '';
 
@@ -149,6 +281,11 @@
                         a.classList.toggle('active', a.dataset.tab === vendorTab());
                     });
                 });
+
+                // Accessibility: let vendors enlarge or shrink the dashboard
+                if (currentPage === 'vendor-dashboard.html' && !document.getElementById('zoom-controls')) {
+                    addZoomControls(actionBtn, 'vendor');
+                }
             } else if (role === 'admin') {
                 linksContainer.innerHTML = `
                     <a href="index.html" class="${isActive('index.html')}">Home</a>
@@ -156,6 +293,12 @@
                     <a href="admin-dashboard.html" class="${isActive('admin-dashboard.html')}">Dashboard</a>
                     <a href="admin-reports.html" class="${isActive('admin-reports.html')}">Reports</a>
                 `;
+
+                // Accessibility: page zoom on the admin dashboard and reports
+                if (['admin-dashboard.html', 'admin-reports.html'].includes(currentPage)
+                        && !document.getElementById('zoom-controls')) {
+                    addZoomControls(actionBtn, 'admin');
+                }
             } else {
                 // Consumer: Home, About, Browse Listings, My Orders, My Points.
                 const hashTab = () => (window.location.hash || '#browse').replace('#', '');
@@ -179,6 +322,11 @@
                         a.classList.toggle('active', a.dataset.tab === activeTab());
                     });
                 });
+
+                // Accessibility: page zoom on the consumer dashboard
+                if (currentPage === 'consumer-dashboard.html' && !document.getElementById('zoom-controls')) {
+                    addZoomControls(actionBtn, 'consumer');
+                }
             }
         } else {
             linksContainer.innerHTML = `

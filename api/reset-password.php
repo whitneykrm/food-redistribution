@@ -17,6 +17,15 @@ function findValidReset(PDO $pdo, string $token): ?array
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     return $row ?: null;
 }
+function passwordProblem(string $password): string
+{
+    if (strlen($password) < 6)             return 'Password must be at least 6 characters long.';
+    if (!preg_match('/[A-Z]/', $password)) return 'Password must include an uppercase letter.';
+    if (!preg_match('/[a-z]/', $password)) return 'Password must include a lowercase letter.';
+    if (!preg_match('/[0-9]/', $password)) return 'Password must include a number.';
+    if (!preg_match('/[^A-Za-z0-9]/', $password)) return 'Password must include a special character, such as ! @ # $ %.';
+    return '';
+}
 
 try {
     $method = $_SERVER['REQUEST_METHOD'] ?? '';
@@ -44,9 +53,10 @@ try {
         echo json_encode(['success' => false, 'message' => 'Passwords do not match.']);
         exit();
     }
-    if (strlen($password) < 6 || preg_match('/^\d+$/', $password)) {
+    $passwordIssue = passwordProblem($password);
+    if ($passwordIssue !== '') {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Password must be at least 6 characters and cannot be numbers only.']);
+        echo json_encode(['success' => false, 'message' => $passwordIssue]);
         exit();
     }
 
